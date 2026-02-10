@@ -11,7 +11,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CATEGORIES } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
-import { Loader2, X, Upload } from 'lucide-react';
+import { Loader2, X, Upload, Check } from 'lucide-react';
+
+const PRESET_COLORS = [
+  { name: 'Preto', value: '#000000', border: 'border-slate-200' },
+  { name: 'Branco', value: '#FFFFFF', border: 'border-slate-300 shadow-sm' },
+  { name: 'Cinza', value: '#808080', border: 'border-transparent' },
+  { name: 'Azul Marinho', value: '#000080', border: 'border-transparent' },
+  { name: 'Azul Royal', value: '#4169E1', border: 'border-transparent' },
+  { name: 'Azul Claro', value: '#87CEEB', border: 'border-transparent' },
+  { name: 'Vermelho', value: '#FF0000', border: 'border-transparent' },
+  { name: 'Vinho', value: '#800000', border: 'border-transparent' },
+  { name: 'Verde', value: '#008000', border: 'border-transparent' },
+  { name: 'Verde Claro', value: '#90EE90', border: 'border-transparent' },
+  { name: 'Amarelo', value: '#FFD700', border: 'border-transparent' },
+  { name: 'Laranja', value: '#FFA500', border: 'border-transparent' },
+  { name: 'Roxo', value: '#800080', border: 'border-transparent' },
+  { name: 'Rosa', value: '#FFC0CB', border: 'border-transparent' },
+  { name: 'Marrom', value: '#A52A2A', border: 'border-transparent' },
+  { name: 'Bege', value: '#E8DCC4', border: 'border-transparent' },
+  { name: 'Prata', value: '#C0C0C0', border: 'border-transparent' },
+  { name: 'Dourado', value: '#DAA520', border: 'border-transparent' },
+];
 
 const productSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -36,7 +57,6 @@ export function AdminProductForm() {
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
-  const [colorInput, setColorInput] = useState('');
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
@@ -112,16 +132,12 @@ export function AdminProductForm() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const addColor = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (colorInput.trim()) {
-      setColors([...colors, colorInput.trim()]);
-      setColorInput('');
+  const toggleColor = (colorName: string) => {
+    if (colors.includes(colorName)) {
+      setColors(colors.filter(c => c !== colorName));
+    } else {
+      setColors([...colors, colorName]);
     }
-  };
-
-  const removeColor = (index: number) => {
-    setColors(colors.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (data: ProductFormValues) => {
@@ -264,27 +280,34 @@ export function AdminProductForm() {
 
             <div className="space-y-4 pt-4 border-t border-slate-100">
                <Label className="text-base font-semibold text-slate-700 block">Cores Disponíveis</Label>
-               <div className="flex gap-3">
-                 <Input 
-                   value={colorInput} 
-                   onChange={(e) => setColorInput(e.target.value)} 
-                   placeholder="Digite uma cor e pressione Enter" 
-                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addColor(e); } }}
-                   className="max-w-sm bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12"
-                 />
-                 <Button type="button" onClick={addColor} variant="secondary" className="h-12 px-6 bg-slate-800 text-white hover:bg-slate-700 font-medium">Adicionar</Button>
-               </div>
-               <div className="flex flex-wrap gap-3 pt-2">
-                 {colors.map((color, i) => (
-                   <div key={i} className="bg-white border border-slate-200 pl-4 pr-2 py-2 rounded-full flex items-center gap-3 text-sm shadow-sm hover:shadow-md transition-shadow">
-                     <div className="w-3 h-3 rounded-full bg-primary/20 border border-primary"></div>
-                     <span className="font-semibold text-slate-700">{color}</span>
-                     <button type="button" onClick={() => removeColor(i)} className="text-slate-400 hover:text-red-500 transition-colors bg-slate-50 rounded-full p-1 hover:bg-red-50"><X className="h-3 w-3" /></button>
-                   </div>
-                 ))}
-                 {colors.length === 0 && <p className="text-sm text-slate-400 italic py-2">Nenhuma cor adicionada ainda.</p>}
-               </div>
-            </div>
+               
+               <div className="flex flex-wrap gap-x-4 gap-y-10 mb-8 pt-2">
+                 {PRESET_COLORS.map((color) => {
+                   const isSelected = colors.includes(color.name);
+                   return (
+                     <button
+                       key={color.name}
+                       type="button"
+                       onClick={() => toggleColor(color.name)}
+                       className={`
+                         group relative w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center
+                         ${isSelected ? 'border-primary ring-2 ring-primary/20 scale-110' : `${color.border} hover:scale-110 hover:shadow-md`}
+                       `}
+                       style={{ backgroundColor: color.value }}
+                       title={color.name}
+                     >
+                       {isSelected && <Check className={`h-5 w-5 ${color.name === 'Branco' || color.name === 'Bege' || color.name === 'Prata' ? 'text-black' : 'text-white'}`} />}
+                       <span className="sr-only">{color.name}</span>
+                       
+                       {/* Tooltip on hover */}
+                       <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
+                         {color.name}
+                       </span>
+                     </button>
+                    );
+                  })}
+                </div>
+             </div>
           </CardContent>
         </Card>
 
