@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, Star, Truck, ShieldCheck, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from '@/components/ui/card';
 import { CATEGORIES, PARTNERS } from '@/lib/constants';
@@ -42,20 +42,6 @@ export function Home() {
       answer: "Trabalhamos com faturamento para empresas (mediante análise), boleto bancário, PIX e cartões de crédito."
     }
   ];
-
-  const [duration, setDuration] = useState(40);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setDuration(window.innerWidth < 768 ? 15 : 40);
-    };
-    
-    // Set initial
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   return (
     <div className="flex flex-col gap-12 pb-12">
