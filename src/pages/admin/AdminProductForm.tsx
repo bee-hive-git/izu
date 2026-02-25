@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CATEGORIES } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
-import { Loader2, X, Upload, Check } from 'lucide-react';
+import { ImageUploader } from '@/components/ImageUploader';
+import { Loader2, Check } from 'lucide-react';
 
 const PRESET_COLORS = [
   { name: 'Preto', value: '#000000', border: 'border-slate-200' },
@@ -54,8 +55,7 @@ export function AdminProductForm() {
   const navigate = useNavigate();
   const isEditing = !!id;
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [images, setImages] = useState<{ url: string; public_id?: string }[]>([]);
   const [colors, setColors] = useState<string[]>([]);
 
   const form = useForm<ProductFormValues>({
@@ -91,46 +91,13 @@ export function AdminProductForm() {
             engraving_dimensions: data.engraving_dimensions,
             additional_info: data.additional_info,
           });
-          setImages(data.images || []);
+          setImages(data.images?.map((url: string) => ({ url })) || []);
           setColors(data.colors || []);
         }
       }
       fetchProduct();
     }
   }, [id, isEditing, form]);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    setUploading(true);
-    
-    const files = Array.from(e.target.files);
-    const newImages: string[] = [];
-
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        alert('Erro ao fazer upload da imagem');
-        continue;
-      }
-
-      const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-      newImages.push(data.publicUrl);
-    }
-
-    setImages([...images, ...newImages]);
-    setUploading(false);
-  };
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
 
   const toggleColor = (colorName: string) => {
     if (colors.includes(colorName)) {
@@ -151,7 +118,7 @@ export function AdminProductForm() {
 
     const productData = {
       ...data,
-      images,
+      images: images.map(img => img.url),
       colors,
       updated_at: new Date().toISOString(),
     };
@@ -254,28 +221,11 @@ export function AdminProductForm() {
           <CardContent className="p-8 space-y-8 bg-white">
             <div className="space-y-4">
                <Label className="text-base font-semibold text-slate-700 block">Imagens do Produto</Label>
-               <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 border-dashed">
-                 <div className="flex flex-wrap gap-6">
-                   {images.map((img, i) => (
-                     <div key={i} className="relative w-32 h-32 border-2 border-white shadow-md rounded-lg overflow-hidden group">
-                       <img src={img} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                         <button type="button" onClick={() => removeImage(i)} className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transform hover:scale-110 transition-all">
-                           <X className="h-4 w-4" />
-                         </button>
-                       </div>
-                     </div>
-                   ))}
-                   <label className="w-32 h-32 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-primary hover:text-primary hover:shadow-md transition-all group bg-white">
-                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-2 group-hover:bg-primary/10 transition-colors">
-                        <Upload className="h-5 w-5 text-slate-500 group-hover:text-primary" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-500 group-hover:text-primary">Adicionar Foto</span>
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-                   </label>
-                 </div>
-               </div>
-               {uploading && <p className="text-sm text-primary animate-pulse font-medium mt-2 flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Enviando imagens...</p>}
+               <ImageUploader 
+                 value={images} 
+                 onChange={setImages} 
+                 maxImages={20}
+               />
             </div>
 
             <div className="space-y-4 pt-4 border-t border-slate-100">
@@ -356,7 +306,7 @@ export function AdminProductForm() {
         {/* Botões de Ação */}
         <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 mt-10">
           <Button type="button" variant="outline" onClick={() => navigate('/admin/produtos')} className="px-8 h-12 text-base border-slate-300 hover:bg-slate-50">Cancelar</Button>
-          <Button type="submit" disabled={loading || uploading} className="bg-green-600 hover:bg-green-700 px-10 h-12 text-base font-bold shadow-lg shadow-green-600/20">
+          <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 px-10 h-12 text-base font-bold shadow-lg shadow-green-600/20">
             {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
             Salvar Produto
           </Button>
