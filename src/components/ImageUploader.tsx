@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,8 @@ export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onS
   const { uploadImage, deleteImage, uploading, error } = useImageUpload();
   const [dragActive, setDragActive] = useState(false);
   const [localUploading, setLocalUploading] = useState(false);
+
+  const isUploading = uploading || localUploading;
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -94,7 +96,7 @@ export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onS
         className={cn(
           "border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors cursor-pointer min-h-[150px]",
           dragActive ? "border-primary bg-primary/5" : "border-slate-200 hover:bg-slate-50",
-          localUploading && "opacity-50 pointer-events-none"
+          isUploading && "opacity-50 pointer-events-none"
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -109,10 +111,10 @@ export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onS
           accept="image/*"
           className="hidden"
           onChange={handleChange}
-          disabled={localUploading}
+          disabled={isUploading}
         />
         
-        {localUploading ? (
+        {isUploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Enviando imagens...</p>
