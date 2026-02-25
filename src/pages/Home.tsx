@@ -224,7 +224,7 @@ export function Home() {
                     <img 
                       src={partner.logo} 
                       alt={partner.name} 
-                      className="h-32 w-auto object-contain max-w-[200px] grayscale opacity-100 invert transition-all duration-300 hover:scale-110 hover:grayscale-0 hover:invert-0"
+                      className="h-32 w-auto object-contain max-w-[200px] grayscale opacity-100 invert transition-all duration-300"
                     />
                   </div>
                 ))}
