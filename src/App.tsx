@@ -10,12 +10,15 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
 import { ForgotPassword } from './pages/admin/ForgotPassword';
 import { UpdatePassword } from './pages/admin/UpdatePassword';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Home />} />
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
         <Route path="produtos" element={<ProductList />} />
         <Route path="produtos/:category" element={<ProductList />} />
         <Route path="produtos/:category/:subcategory" element={<ProductList />} />
@@ -35,6 +38,7 @@ function App() {
         <Route path="produtos/:id/editar" element={<AdminProductForm />} />
       </Route>
     </Routes>
+    </>
   );
 }
 
