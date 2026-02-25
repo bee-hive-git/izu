@@ -32,7 +32,7 @@ export function HeroCarousel({ children }: HeroCarouselProps) {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrent((prev) => (prev + 1) % SLIDES.length);
-    }, 5000); // 5 seconds per slide
+    }, 12000); // 12 seconds per slide
     return () => clearInterval(timer);
   }, []);
 
@@ -47,7 +47,7 @@ export function HeroCarousel({ children }: HeroCarouselProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 1.5 }}
             className="absolute inset-0 w-full h-full"
         >
             {SLIDES[current].type === 'component' ? (
