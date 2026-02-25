@@ -25,19 +25,19 @@ export function useImageUpload(): UseImageUploadReturn {
       });
 
       if (!response.ok) {
-        // Tenta ler o corpo do erro como JSON, se não, como texto
+        const errorText = await response.text();
         let errorMessage = 'Falha no upload da imagem';
+        
         try {
-          const errorData = await response.json();
+          const errorData = JSON.parse(errorText);
           errorMessage = errorData.error || errorMessage;
         } catch {
-          const textError = await response.text();
-          console.error('Erro na resposta do servidor (não-JSON):', textError);
+          console.error('Erro na resposta do servidor (não-JSON):', errorText);
           // Se retornar HTML (ex: index.html do SPA), provavelmente a rota API não foi encontrada
-          if (textError.trim().startsWith('<!DOCTYPE html>')) {
+          if (errorText.trim().startsWith('<!DOCTYPE html>')) {
              errorMessage = 'Erro: Rota da API não encontrada. Verifique se você está rodando com "vercel dev" localmente.';
           } else {
-             errorMessage = `Erro ${response.status}: ${textError.slice(0, 100)}`;
+             errorMessage = `Erro ${response.status}: ${errorText.slice(0, 100)}`;
           }
         }
         throw new Error(errorMessage);
