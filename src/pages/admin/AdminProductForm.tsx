@@ -56,6 +56,7 @@ export function AdminProductForm() {
   const isEditing = !!id;
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<{ url: string; public_id?: string }[]>([]);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [colors, setColors] = useState<string[]>([]);
 
   const form = useForm<ProductFormValues>({
@@ -91,7 +92,9 @@ export function AdminProductForm() {
             engraving_dimensions: data.engraving_dimensions,
             additional_info: data.additional_info,
           });
-          setImages(data.images?.map((url: string) => ({ url })) || []);
+          const productImages = data.images?.map((url: string) => ({ url })) || [];
+          setImages(productImages);
+          setCoverImage(productImages[0]?.url || null);
           setColors(data.colors || []);
         }
       }
@@ -116,9 +119,19 @@ export function AdminProductForm() {
       return;
     }
 
+    // Reordenar imagens para que a capa seja a primeira
+    const sortedImages = [...images];
+    if (coverImage) {
+      const coverIndex = sortedImages.findIndex(img => img.url === coverImage);
+      if (coverIndex > 0) {
+        const [cover] = sortedImages.splice(coverIndex, 1);
+        sortedImages.unshift(cover);
+      }
+    }
+
     const productData = {
       ...data,
-      images: images.map(img => img.url),
+      images: sortedImages.map(img => img.url),
       colors,
       updated_at: new Date().toISOString(),
     };
@@ -223,8 +236,16 @@ export function AdminProductForm() {
                <Label className="text-base font-semibold text-slate-700 block">Imagens do Produto</Label>
                <ImageUploader 
                  value={images} 
-                 onChange={setImages} 
+                 onChange={(newImages) => {
+                   setImages(newImages);
+                   // Se a capa foi removida ou não existe, define a primeira imagem como capa
+                   if (newImages.length > 0 && (!coverImage || !newImages.find(img => img.url === coverImage))) {
+                     setCoverImage(newImages[0].url);
+                   }
+                 }} 
                  maxImages={20}
+                 coverImage={coverImage || undefined}
+                 onSetCover={setCoverImage}
                />
             </div>
 
