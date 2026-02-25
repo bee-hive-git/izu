@@ -99,7 +99,7 @@ export const COMPANY_INFO = {
   email: "contato@izu.com.br", // Placeholder
   address: "Goiânia, GO", // Placeholder
   social: {
-    instagram: "https://instagram.com/izu",
-    facebook: "https://facebook.com/izu"
+    instagram: "https://www.instagram.com/izumochilasebrindes/",
+    facebook: "https://www.facebook.com/izumochilaspersonalizadas/"
   }
 };
