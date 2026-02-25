@@ -1,5 +1,5 @@
 import { ShoppingBag, Target, Users, ShieldCheck } from 'lucide-react';
-import { COMPANY_INFO } from '@/lib/constants';
+import { COMPANY_INFO, PARTNERS } from '@/lib/constants';
 import { motion } from 'framer-motion';
 
 export function About() {
@@ -98,17 +98,21 @@ export function About() {
       {/* Partners/Clients grid placeholder */}
       <section className="container mx-auto px-4 text-center">
         <h2 className="text-2xl font-bold mb-12">Quem confia no nosso trabalho</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 opacity-50 grayscale">
-          {[1,2,3,4,5].map(i => (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 items-center opacity-50 grayscale">
+          {PARTNERS.map((partner, i) => (
             <motion.div 
-              key={i} 
+              key={partner.name} 
               initial={{ opacity: 0, scale: 0.5 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="h-12 bg-slate-200 rounded flex items-center justify-center font-bold"
+              className="flex items-center justify-center h-20"
             >
-              LOGO
+              <img 
+                src={partner.logo} 
+                alt={partner.name} 
+                className="max-h-full max-w-[150px] object-contain"
+              />
             </motion.div>
           ))}
         </div>
