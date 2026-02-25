@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import formidable from 'formidable';
-import cloudinary from './_lib/cloudinary.js';
+import cloudinary from './_lib/cloudinary';
 
 export const config = {
   api: {
