@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import cloudinary from './_lib/cloudinary.js';
+import cloudinary from './_lib/cloudinary';
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'DELETE') {
