@@ -8,9 +8,11 @@ interface ImageUploaderProps {
   value: { url: string; public_id?: string }[];
   onChange: (images: { url: string; public_id?: string }[]) => void;
   maxImages?: number;
+  coverImage?: string;
+  onSetCover?: (url: string) => void;
 }
 
-export function ImageUploader({ value, onChange, maxImages = 20 }: ImageUploaderProps) {
+export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onSetCover }: ImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadImage, deleteImage, uploading, error } = useImageUpload();
   const [dragActive, setDragActive] = useState(false);
@@ -141,9 +143,34 @@ export function ImageUploader({ value, onChange, maxImages = 20 }: ImageUploader
                 <img 
                   src={image.url} 
                   alt={`Preview ${index}`} 
-                  className="w-full h-full object-cover"
+                  className={cn(
+                    "w-full h-full object-cover",
+                    coverImage === image.url && "ring-2 ring-primary"
+                  )}
                 />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                
+                {coverImage === image.url && (
+                  <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded shadow-sm z-10">
+                    Capa
+                  </div>
+                )}
+
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                  {onSetCover && coverImage !== image.url && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetCover(image.url);
+                      }}
+                    >
+                      Definir Capa
+                    </Button>
+                  )}
+                  
                   <Button
                     type="button"
                     variant="destructive"
