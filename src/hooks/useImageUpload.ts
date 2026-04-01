@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface UseImageUploadReturn {
   uploadImage: (file: File) => Promise<{ url: string; public_id: string }>;
@@ -6,6 +7,39 @@ interface UseImageUploadReturn {
   uploading: boolean;
   error: string | null;
 }
+
+const STORAGE_BUCKET = 'products';
+
+const sanitizeFileName = (fileName: string) =>
+  fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9.-]/g, '-')
+    .replace(/-+/g, '-')
+    .toLowerCase();
+
+const getStoragePath = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  const safeName = sanitizeFileName(file.name.replace(/\.[^.]+$/, ''));
+  const fileName = extension ? `${safeName}.${extension}` : safeName;
+  return `admin/${crypto.randomUUID()}-${fileName}`;
+};
+
+export const getStoragePathFromImageUrl = (imageUrl: string) => {
+  try {
+    const url = new URL(imageUrl);
+    const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+    const index = url.pathname.indexOf(marker);
+
+    if (index === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(url.pathname.slice(index + marker.length));
+  } catch {
+    return null;
+  }
+};
 
 export function useImageUpload(): UseImageUploadReturn {
   const [uploading, setUploading] = useState(false);
@@ -15,41 +49,37 @@ export function useImageUpload(): UseImageUploadReturn {
     setUploading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const filePath = getStoragePath(file);
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type,
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = 'Falha no upload da imagem';
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          console.error('Erro na resposta do servidor (não-JSON):', errorText);
-          // Se retornar HTML (ex: index.html do SPA), provavelmente a rota API não foi encontrada
-          if (errorText.trim().startsWith('<!DOCTYPE html>')) {
-             errorMessage = 'Erro: Rota da API não encontrada. Verifique se você está rodando com "vercel dev" localmente.';
-          } else {
-             errorMessage = `Erro ${response.status}: ${errorText.slice(0, 100)}`;
-          }
-        }
-        throw new Error(errorMessage);
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Falha no upload da imagem');
       }
 
-      const data = await response.json();
-      setUploading(false);
-      return data;
+      const { data } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(filePath);
+
+      if (!data.publicUrl) {
+        throw new Error('Não foi possível obter a URL pública da imagem');
+      }
+
+      return {
+        url: data.publicUrl,
+        public_id: filePath,
+      };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      setUploading(false);
       throw err;
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -58,23 +88,18 @@ export function useImageUpload(): UseImageUploadReturn {
     setError(null);
 
     try {
-      const response = await fetch('/api/delete', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ public_id }),
-      });
+      const { error: deleteError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove([public_id]);
 
-      if (!response.ok) {
-        throw new Error('Falha ao deletar imagem');
+      if (deleteError) {
+        throw new Error(deleteError.message || 'Falha ao deletar imagem');
       }
-
-      setUploading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      setUploading(false);
       throw err;
+    } finally {
+      setUploading(false);
     }
   };
 
