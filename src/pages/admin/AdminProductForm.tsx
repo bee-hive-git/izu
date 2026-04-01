@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CATEGORIES } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
 import { ImageUploader } from '@/components/ImageUploader';
+import { getStoragePathFromImageUrl } from '@/hooks/useImageUpload';
 import { Loader2, Check } from 'lucide-react';
 
 const PRESET_COLORS = [
@@ -49,38 +50,64 @@ const productSchema = z.object({
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
+type ProductImage = { url: string; public_id?: string };
+type ProductDraft = {
+  formValues: Partial<ProductFormValues>;
+  images: ProductImage[];
+  coverImage: string | null;
+  colors: string[];
+};
+
+const DEFAULT_FORM_VALUES: ProductFormValues = {
+  name: '',
+  description: '',
+  category: '',
+  subcategory: '',
+  height: 0,
+  width: 0,
+  depth: 0,
+  weight: undefined,
+  engraving_dimensions: '',
+  additional_info: '',
+};
+
+const getDraftStorageKey = (productId?: string) => `admin-product-form-draft:${productId ?? 'new'}`;
 
 export function AdminProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditing = !!id;
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<{ url: string; public_id?: string }[]>([]);
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [colors, setColors] = useState<string[]>([]);
+  const [draftReady, setDraftReady] = useState(false);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
-    defaultValues: {
-      name: '',
-      description: '',
-      category: '',
-      subcategory: '',
-      height: 0,
-      width: 0,
-      depth: 0,
-    },
+    defaultValues: DEFAULT_FORM_VALUES,
   });
 
+  const draftStorageKey = getDraftStorageKey(id);
+  const watchedValues = form.watch();
   const selectedCategory = form.watch('category');
   const subcategories = CATEGORIES.find(c => c.name === selectedCategory)?.subcategories || [];
 
   useEffect(() => {
-    if (isEditing) {
-      async function fetchProduct() {
+    let isCancelled = false;
+
+    async function initializeForm() {
+      setDraftReady(false);
+
+      let baseValues = DEFAULT_FORM_VALUES;
+      let baseImages: ProductImage[] = [];
+      let baseCoverImage: string | null = null;
+      let baseColors: string[] = [];
+
+      if (isEditing && id) {
         const { data } = await supabase.from('products').select('*').eq('id', id).single();
         if (data) {
-          form.reset({
+          baseValues = {
             name: data.name,
             description: data.description,
             category: data.category,
@@ -89,18 +116,69 @@ export function AdminProductForm() {
             width: data.width,
             depth: data.depth,
             weight: data.weight,
-            engraving_dimensions: data.engraving_dimensions,
-            additional_info: data.additional_info,
-          });
-          const productImages = data.images?.map((url: string) => ({ url })) || [];
-          setImages(productImages);
-          setCoverImage(productImages[0]?.url || null);
-          setColors(data.colors || []);
+            engraving_dimensions: data.engraving_dimensions ?? '',
+            additional_info: data.additional_info ?? '',
+          };
+          baseImages = data.images?.map((url: string) => ({
+            url,
+            public_id: getStoragePathFromImageUrl(url) || undefined,
+          })) || [];
+          baseCoverImage = baseImages[0]?.url || null;
+          baseColors = data.colors || [];
         }
       }
-      fetchProduct();
+
+      if (isCancelled) {
+        return;
+      }
+
+      let draft: ProductDraft | null = null;
+
+      try {
+        const storedDraft = window.localStorage.getItem(draftStorageKey);
+        draft = storedDraft ? JSON.parse(storedDraft) : null;
+      } catch {
+        draft = null;
+      }
+
+      const restoredImages = draft ? draft.images || [] : baseImages;
+      const restoredCoverImage = draft
+        ? draft.coverImage && restoredImages.some((image) => image.url === draft.coverImage)
+          ? draft.coverImage
+          : restoredImages[0]?.url || null
+        : baseCoverImage;
+
+      form.reset({
+        ...baseValues,
+        ...(draft?.formValues || {}),
+      });
+      setImages(restoredImages);
+      setCoverImage(restoredCoverImage);
+      setColors(draft ? draft.colors || [] : baseColors);
+      setDraftReady(true);
     }
-  }, [id, isEditing, form]);
+
+    initializeForm();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [draftStorageKey, form, id, isEditing]);
+
+  useEffect(() => {
+    if (!draftReady) {
+      return;
+    }
+
+    const draft: ProductDraft = {
+      formValues: watchedValues,
+      images,
+      coverImage,
+      colors,
+    };
+
+    window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+  }, [colors, coverImage, draftReady, draftStorageKey, images, watchedValues]);
 
   const toggleColor = (colorName: string) => {
     if (colors.includes(colorName)) {
@@ -155,6 +233,7 @@ export function AdminProductForm() {
       console.error(error);
       alert('Erro ao salvar produto');
     } else {
+      window.localStorage.removeItem(draftStorageKey);
       navigate('/admin/produtos');
     }
     setLoading(false);
