@@ -4,7 +4,7 @@ import { Phone, ArrowLeft, Loader2, Maximize2, Ruler, Weight } from 'lucide-reac
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { COMPANY_INFO } from '@/lib/constants';
+import { COMPANY_INFO, PRODUCT_COLOR_PRESETS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 interface Product {
@@ -22,6 +22,8 @@ interface Product {
   engraving_dimensions?: string;
   additional_info?: string;
 }
+
+const PRODUCT_COLOR_VALUE_BY_NAME = new Map(PRODUCT_COLOR_PRESETS.map((color) => [color.name, color.value] as const));
 
 export function ProductDetail() {
   const { id } = useParams();
@@ -146,12 +148,19 @@ export function ProductDetail() {
                     key={color}
                     onClick={() => setSelectedColor(color)}
                     className={cn(
-                      "px-4 py-2 rounded-full border text-sm font-medium transition-all",
+                      "px-4 py-2 rounded-full border text-sm font-medium transition-all inline-flex items-center gap-2",
                       selectedColor === color 
                         ? "bg-primary text-primary-foreground border-primary" 
                         : "bg-white text-slate-700 hover:border-slate-400"
                     )}
                   >
+                    <span
+                      className={cn(
+                        "h-3 w-3 rounded-full border",
+                        selectedColor === color ? "border-white/70" : "border-slate-200"
+                      )}
+                      style={{ backgroundColor: PRODUCT_COLOR_VALUE_BY_NAME.get(color) || '#e2e8f0' }}
+                    />
                     {color}
                   </button>
                 ))}
