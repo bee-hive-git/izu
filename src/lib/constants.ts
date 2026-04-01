@@ -103,3 +103,24 @@ export const COMPANY_INFO = {
     facebook: "https://www.facebook.com/izumochilaspersonalizadas/"
   }
 };
+
+export const PRODUCT_COLOR_PRESETS = [
+  { name: 'Preto', value: '#000000', border: 'border-slate-200' },
+  { name: 'Branco', value: '#FFFFFF', border: 'border-slate-300 shadow-sm' },
+  { name: 'Cinza', value: '#808080', border: 'border-transparent' },
+  { name: 'Azul Marinho', value: '#000080', border: 'border-transparent' },
+  { name: 'Azul Royal', value: '#4169E1', border: 'border-transparent' },
+  { name: 'Azul Claro', value: '#87CEEB', border: 'border-transparent' },
+  { name: 'Vermelho', value: '#FF0000', border: 'border-transparent' },
+  { name: 'Vinho', value: '#800000', border: 'border-transparent' },
+  { name: 'Verde', value: '#008000', border: 'border-transparent' },
+  { name: 'Verde Claro', value: '#90EE90', border: 'border-transparent' },
+  { name: 'Amarelo', value: '#FFD700', border: 'border-transparent' },
+  { name: 'Laranja', value: '#FFA500', border: 'border-transparent' },
+  { name: 'Roxo', value: '#800080', border: 'border-transparent' },
+  { name: 'Rosa', value: '#FFC0CB', border: 'border-transparent' },
+  { name: 'Marrom', value: '#A52A2A', border: 'border-transparent' },
+  { name: 'Bege', value: '#E8DCC4', border: 'border-transparent' },
+  { name: 'Prata', value: '#C0C0C0', border: 'border-transparent' },
+  { name: 'Dourado', value: '#DAA520', border: 'border-transparent' },
+];

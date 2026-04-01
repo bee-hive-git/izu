@@ -9,32 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CATEGORIES } from '@/lib/constants';
+import { CATEGORIES, PRODUCT_COLOR_PRESETS } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
 import { ImageUploader } from '@/components/ImageUploader';
 import { getStoragePathFromImageUrl } from '@/hooks/useImageUpload';
 import { Loader2, Check } from 'lucide-react';
-
-const PRESET_COLORS = [
-  { name: 'Preto', value: '#000000', border: 'border-slate-200' },
-  { name: 'Branco', value: '#FFFFFF', border: 'border-slate-300 shadow-sm' },
-  { name: 'Cinza', value: '#808080', border: 'border-transparent' },
-  { name: 'Azul Marinho', value: '#000080', border: 'border-transparent' },
-  { name: 'Azul Royal', value: '#4169E1', border: 'border-transparent' },
-  { name: 'Azul Claro', value: '#87CEEB', border: 'border-transparent' },
-  { name: 'Vermelho', value: '#FF0000', border: 'border-transparent' },
-  { name: 'Vinho', value: '#800000', border: 'border-transparent' },
-  { name: 'Verde', value: '#008000', border: 'border-transparent' },
-  { name: 'Verde Claro', value: '#90EE90', border: 'border-transparent' },
-  { name: 'Amarelo', value: '#FFD700', border: 'border-transparent' },
-  { name: 'Laranja', value: '#FFA500', border: 'border-transparent' },
-  { name: 'Roxo', value: '#800080', border: 'border-transparent' },
-  { name: 'Rosa', value: '#FFC0CB', border: 'border-transparent' },
-  { name: 'Marrom', value: '#A52A2A', border: 'border-transparent' },
-  { name: 'Bege', value: '#E8DCC4', border: 'border-transparent' },
-  { name: 'Prata', value: '#C0C0C0', border: 'border-transparent' },
-  { name: 'Dourado', value: '#DAA520', border: 'border-transparent' },
-];
 
 const productSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -332,7 +311,7 @@ export function AdminProductForm() {
                <Label className="text-base font-semibold text-slate-700 block">Cores Disponíveis</Label>
                
                <div className="flex flex-wrap gap-x-4 gap-y-10 mb-8 pt-2">
-                 {PRESET_COLORS.map((color) => {
+                 {PRODUCT_COLOR_PRESETS.map((color) => {
                    const isSelected = colors.includes(color.name);
                    return (
                      <button
