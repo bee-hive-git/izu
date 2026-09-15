@@ -36,6 +36,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     sendJson(res, 200, result);
   } catch (error) {
     console.error('Upload error:', error);
-    sendJson(res, 500, { error: 'Error uploading image' });
+    sendJson(res, 500, {
+      error: error instanceof Error ? error.message : 'Error uploading image',
+    });
   }
 }
