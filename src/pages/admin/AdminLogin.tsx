@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
+import { authApi } from '@/lib/api';
 import logo from '@/assets/logo-principal.png';
 import { COMPANY_INFO } from '@/lib/constants';
 
@@ -14,7 +14,7 @@ export function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, setSession } = useAuth();
 
   if (session) {
     navigate('/admin');
@@ -26,17 +26,15 @@ export function AdminLogin() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
-    } else {
+    try {
+      const currentSession = await authApi.login(email, password);
+      setSession(currentSession);
       navigate('/admin');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao entrar');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

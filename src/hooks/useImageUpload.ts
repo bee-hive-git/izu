@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
 interface UseImageUploadReturn {
   uploadImage: (file: File) => Promise<{ url: string; public_id: string }>;
@@ -8,29 +7,27 @@ interface UseImageUploadReturn {
   error: string | null;
 }
 
-const STORAGE_BUCKET = 'products';
-
-const sanitizeFileName = (fileName: string) =>
-  fileName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9.-]/g, '-')
-    .replace(/-+/g, '-')
-    .toLowerCase();
-
-const getStoragePath = (file: File) => {
-  const extension = file.name.split('.').pop()?.toLowerCase();
-  const safeName = sanitizeFileName(file.name.replace(/\.[^.]+$/, ''));
-  const fileName = extension ? `${safeName}.${extension}` : safeName;
-  return `admin/${crypto.randomUUID()}-${fileName}`;
-};
-
 export const getStoragePathFromImageUrl = (imageUrl: string) => {
   try {
     const url = new URL(imageUrl);
-    const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
-    const index = url.pathname.indexOf(marker);
 
+    if (url.hostname.endsWith('.b-cdn.net') || url.hostname.includes('bunnycdn.com')) {
+      const path = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+      return path.startsWith('produtos/') ? path : null;
+    }
+
+    if (url.hostname.includes('cloudinary.com')) {
+      const uploadIndex = url.pathname.indexOf('/upload/');
+      if (uploadIndex === -1) {
+        return null;
+      }
+
+      const afterUpload = url.pathname.slice(uploadIndex + '/upload/'.length).replace(/^v\d+\//, '');
+      return decodeURIComponent(afterUpload.replace(/\.[^.]+$/, ''));
+    }
+
+    const marker = '/storage/v1/object/public/products/';
+    const index = url.pathname.indexOf(marker);
     if (index === -1) {
       return null;
     }
@@ -50,30 +47,23 @@ export function useImageUpload(): UseImageUploadReturn {
     setError(null);
 
     try {
-      const filePath = getStoragePath(file);
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
-        });
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (uploadError) {
-        throw new Error(uploadError.message || 'Falha no upload da imagem');
-      }
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
 
-      const { data } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath);
-
-      if (!data.publicUrl) {
-        throw new Error('Não foi possível obter a URL pública da imagem');
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Falha no upload da imagem');
       }
 
       return {
-        url: data.publicUrl,
-        public_id: filePath,
+        url: data.url as string,
+        public_id: data.public_id as string,
       };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -88,12 +78,16 @@ export function useImageUpload(): UseImageUploadReturn {
     setError(null);
 
     try {
-      const { error: deleteError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .remove([public_id]);
+      const response = await fetch('/api/delete', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_id }),
+      });
+      const data = await response.json().catch(() => ({}));
 
-      if (deleteError) {
-        throw new Error(deleteError.message || 'Falha ao deletar imagem');
+      if (!response.ok) {
+        throw new Error(data.error || 'Falha ao deletar imagem');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');

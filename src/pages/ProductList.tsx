@@ -1,21 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Search, Filter, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { productsApi, type Product } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { CATEGORIES } from '@/lib/constants';
 import { motion } from 'framer-motion';
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  subcategory: string;
-  images: string[];
-  active: boolean;
-}
 
 export function ProductList() {
   const { category, subcategory } = useParams();
@@ -27,29 +18,15 @@ export function ProductList() {
   useEffect(() => {
     async function fetchProducts() {
       setLoading(true);
-      let query = supabase
-        .from('products')
-        .select('id, name, category, subcategory, images, active')
-        .eq('active', true);
-
-      if (category) {
-        query = query.eq('category', decodeURIComponent(category));
-      }
-      if (subcategory) {
-        query = query.eq('subcategory', decodeURIComponent(subcategory));
-      }
-
-      const search = searchParams.get('search');
-      if (search) {
-        query = query.ilike('name', `%${search}%`);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
+      try {
+        const { products: data } = await productsApi.list({
+          category: category ? decodeURIComponent(category) : undefined,
+          subcategory: subcategory ? decodeURIComponent(subcategory) : undefined,
+          search: searchParams.get('search') || undefined,
+        });
+        setProducts(data);
+      } catch (error) {
         console.error('Error fetching products:', error);
-      } else {
-        setProducts(data || []);
       }
       setLoading(false);
     }

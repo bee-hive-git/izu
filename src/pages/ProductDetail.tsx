@@ -1,27 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Phone, ArrowLeft, Loader2, Maximize2, Ruler, Weight } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { productsApi, type Product } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { COMPANY_INFO, PRODUCT_COLOR_PRESETS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  images: string[];
-  category: string;
-  subcategory: string;
-  colors: string[];
-  height: number;
-  width: number;
-  depth: number;
-  weight?: number;
-  engraving_dimensions?: string;
-  additional_info?: string;
-}
 
 const PRODUCT_COLOR_VALUE_BY_NAME = new Map(PRODUCT_COLOR_PRESETS.map((color) => [color.name, color.value] as const));
 
@@ -34,21 +18,19 @@ export function ProductDetail() {
 
   useEffect(() => {
     async function fetchProduct() {
-      if (!id) return;
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching product:', error);
-      } else {
+      try {
+        const { product: data } = await productsApi.get(id);
         setProduct(data);
         if (data.colors?.length > 0) {
           setSelectedColor(data.colors[0]);
         }
+      } catch (error) {
+        console.error('Error fetching product:', error);
       }
       setLoading(false);
     }

@@ -2,13 +2,13 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, LayoutDashboard, Package, LogOut, Home as HomeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { authApi } from '@/lib/api';
 import { Link } from 'react-router-dom';
 import logo from '@/assets/logo-principal.png';
 import { COMPANY_INFO } from '@/lib/constants';
 
 export function AdminLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, setSession } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -24,7 +24,8 @@ export function AdminLayout() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await authApi.logout();
+    setSession(null);
   };
 
   const navItems = [
@@ -78,8 +79,6 @@ export function AdminLayout() {
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8 overflow-auto bg-slate-100">
         <div className="max-w-7xl mx-auto">
-           {/* Content wrapper with shadow and white bg is handled by pages individually if needed, 
-               but layout provides the structure */}
            <Outlet />
         </div>
       </main>

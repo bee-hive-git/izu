@@ -3,16 +3,20 @@ import http from 'http';
 import { parse } from 'url';
 import uploadHandler from '../api/upload';
 import deleteHandler from '../api/delete';
+import loginHandler from '../api/auth/login';
+import logoutHandler from '../api/auth/logout';
+import meHandler from '../api/auth/me';
+import productsHandler from '../api/products/index';
+import productItemHandler from '../api/products/[id]';
 
 const PORT = 3001;
 
 const server = http.createServer(async (req, res) => {
   const parsedUrl = parse(req.url || '', true);
-  const pathname = parsedUrl.pathname;
+  const pathname = parsedUrl.pathname || '';
 
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
-  // Habilitar CORS para desenvolvimento local se necessário (mas o proxy resolve isso)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
@@ -28,6 +32,18 @@ const server = http.createServer(async (req, res) => {
       await uploadHandler(req, res);
     } else if (pathname === '/api/delete') {
       await deleteHandler(req, res);
+    } else if (pathname === '/api/auth/login') {
+      await loginHandler(req, res);
+    } else if (pathname === '/api/auth/logout') {
+      await logoutHandler(req, res);
+    } else if (pathname === '/api/auth/me') {
+      await meHandler(req, res);
+    } else if (pathname === '/api/products') {
+      await productsHandler(req, res);
+    } else if (pathname.startsWith('/api/products/')) {
+      const id = pathname.slice('/api/products/'.length);
+      Object.assign(req, { query: { id } });
+      await productItemHandler(req, res);
     } else {
       console.log(`Route not found: ${pathname}`);
       res.statusCode = 404;
@@ -44,7 +60,6 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`> Local API server running at http://localhost:${PORT}`);
-  console.log(`> Ready to handle /api/upload and /api/delete requests`);
 });
 
 process.on('uncaughtException', (err) => {

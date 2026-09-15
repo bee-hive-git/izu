@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Edit, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { productsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -29,15 +29,11 @@ export function AdminDashboard() {
 
   const fetchProducts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, category, active, created_at')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const { products: data } = await productsApi.list({ all: true });
+      setProducts(data);
+    } catch (error) {
       console.error('Error fetching products:', error);
-    } else {
-      setProducts(data || []);
     }
     setLoading(false);
   };
@@ -47,17 +43,21 @@ export function AdminDashboard() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('products').delete().eq('id', id);
-    if (error) {
-      alert('Erro ao excluir produto');
-    } else {
+    try {
+      await productsApi.remove(id);
       fetchProducts();
+    } catch {
+      alert('Erro ao excluir produto');
     }
   };
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
-    await supabase.from('products').update({ active: !currentStatus }).eq('id', id);
-    fetchProducts();
+    try {
+      await productsApi.setActive(id, !currentStatus);
+      fetchProducts();
+    } catch (error) {
+      console.error('Error toggling product:', error);
+    }
   };
 
   return (

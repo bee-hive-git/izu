@@ -1,26 +1,24 @@
 import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { authApi, type AdminSession } from '@/lib/api';
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
+    let cancelled = false;
+
+    authApi.me().then((currentSession) => {
+      if (!cancelled) {
+        setSession(currentSession);
+        setLoading(false);
+      }
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return { session, loading };
+  return { session, loading, setSession };
 }

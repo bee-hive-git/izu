@@ -1,6 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import formidable from 'formidable';
-import cloudinary from './_lib/cloudinary';
+import { readSession } from './_lib/auth';
+import { uploadProductImage } from './_lib/bunny';
+import { sendJson } from './_lib/http';
 
 export const config = {
   api: {
@@ -10,35 +12,30 @@ export const config = {
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'POST') {
-    res.statusCode = 405;
-    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    sendJson(res, 405, { error: 'Method not allowed' });
+    return;
+  }
+
+  if (!readSession(req)) {
+    sendJson(res, 401, { error: 'Não autenticado' });
     return;
   }
 
   const form = formidable({ keepExtensions: true });
 
   try {
-    const [fields, files] = await form.parse(req);
+    const [, files] = await form.parse(req);
     const file = files.file?.[0];
 
     if (!file) {
-      res.statusCode = 400;
-      res.end(JSON.stringify({ error: 'No file provided' }));
+      sendJson(res, 400, { error: 'No file provided' });
       return;
     }
 
-    const result = await cloudinary.uploader.upload(file.filepath, {
-      folder: 'produtos', // Using 'produtos' instead of 'imoveis' as per context
-    });
-
-    res.statusCode = 200;
-    res.end(JSON.stringify({
-      url: result.secure_url,
-      public_id: result.public_id,
-    }));
+    const result = await uploadProductImage(file.filepath, file.originalFilename || 'image.jpg', file.mimetype || undefined);
+    sendJson(res, 200, result);
   } catch (error) {
     console.error('Upload error:', error);
-    res.statusCode = 500;
-    res.end(JSON.stringify({ error: 'Error uploading image' }));
+    sendJson(res, 500, { error: 'Error uploading image' });
   }
 }

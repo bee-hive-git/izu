@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/lib/supabase';
+import { productsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -84,26 +84,30 @@ export function AdminProductForm() {
       let baseColors: string[] = [];
 
       if (isEditing && id) {
-        const { data } = await supabase.from('products').select('*').eq('id', id).single();
-        if (data) {
-          baseValues = {
-            name: data.name,
-            description: data.description,
-            category: data.category,
-            subcategory: data.subcategory,
-            height: data.height,
-            width: data.width,
-            depth: data.depth,
-            weight: data.weight,
-            engraving_dimensions: data.engraving_dimensions ?? '',
-            additional_info: data.additional_info ?? '',
-          };
-          baseImages = data.images?.map((url: string) => ({
-            url,
-            public_id: getStoragePathFromImageUrl(url) || undefined,
-          })) || [];
-          baseCoverImage = baseImages[0]?.url || null;
-          baseColors = data.colors || [];
+        try {
+          const { product: data } = await productsApi.get(id);
+          if (data) {
+            baseValues = {
+              name: data.name,
+              description: data.description,
+              category: data.category,
+              subcategory: data.subcategory,
+              height: data.height,
+              width: data.width,
+              depth: data.depth,
+              weight: data.weight ?? undefined,
+              engraving_dimensions: data.engraving_dimensions ?? '',
+              additional_info: data.additional_info ?? '',
+            };
+            baseImages = data.images?.map((url: string) => ({
+              url,
+              public_id: getStoragePathFromImageUrl(url) || undefined,
+            })) || [];
+            baseCoverImage = baseImages[0]?.url || null;
+            baseColors = data.colors || [];
+          }
+        } catch (error) {
+          console.error('Error loading product:', error);
         }
       }
 
@@ -190,32 +194,26 @@ export function AdminProductForm() {
       ...data,
       images: sortedImages.map(img => img.url),
       colors,
-      updated_at: new Date().toISOString(),
+      weight: data.weight || null,
+      engraving_dimensions: data.engraving_dimensions || null,
+      additional_info: data.additional_info || null,
     };
 
-    let error;
+    try {
+      if (isEditing && id) {
+        await productsApi.update(id, productData);
+      } else {
+        await productsApi.create({ ...productData, active: true });
+      }
 
-    if (isEditing) {
-      const { error: updateError } = await supabase
-        .from('products')
-        .update(productData)
-        .eq('id', id);
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('products')
-        .insert([{ ...productData, active: true }]);
-      error = insertError;
-    }
-
-    if (error) {
-      console.error(error);
-      alert('Erro ao salvar produto');
-    } else {
       window.localStorage.removeItem(draftStorageKey);
       navigate('/admin/produtos');
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao salvar produto');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

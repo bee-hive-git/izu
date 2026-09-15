@@ -1,33 +1,32 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import cloudinary from './_lib/cloudinary';
+import { readSession } from './_lib/auth';
+import { deleteProductImage } from './_lib/bunny';
+import { readJson, sendJson } from './_lib/http';
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'DELETE') {
-    res.statusCode = 405;
-    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    sendJson(res, 405, { error: 'Method not allowed' });
     return;
   }
 
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
-  }
-  const body = JSON.parse(Buffer.concat(chunks).toString());
-  const { public_id } = body;
-
-  if (!public_id) {
-    res.statusCode = 400;
-    res.end(JSON.stringify({ error: 'Missing public_id' }));
+  if (!readSession(req)) {
+    sendJson(res, 401, { error: 'Não autenticado' });
     return;
   }
 
   try {
-    await cloudinary.uploader.destroy(public_id);
-    res.statusCode = 200;
-    res.end(JSON.stringify({ success: true }));
+    const body = await readJson<{ public_id?: string }>(req);
+    const { public_id } = body;
+
+    if (!public_id) {
+      sendJson(res, 400, { error: 'Missing public_id' });
+      return;
+    }
+
+    await deleteProductImage(public_id);
+    sendJson(res, 200, { success: true });
   } catch (error) {
     console.error('Delete error:', error);
-    res.statusCode = 500;
-    res.end(JSON.stringify({ error: 'Error deleting image' }));
+    sendJson(res, 500, { error: 'Error deleting image' });
   }
 }

@@ -79,12 +79,11 @@ export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onS
     const newImages = value.filter((_, i) => i !== index);
     onChange(newImages);
 
-    // Try to delete from Cloudinary if public_id exists
     if (imageToRemove.public_id) {
       try {
         await deleteImage(imageToRemove.public_id);
       } catch (error) {
-        console.error("Erro ao deletar imagem do Cloudinary:", error);
+        console.error("Erro ao deletar imagem do Bunny:", error);
         // We don't add it back to UI because it's already gone for the user
       }
     }
