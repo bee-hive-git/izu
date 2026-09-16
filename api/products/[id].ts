@@ -1,7 +1,10 @@
-import type { ServerResponse } from 'http';
-import { readSession } from '../_lib/auth';
-import { mapProduct, sql } from '../_lib/db';
-import { getPathParam, readJson, sendJson, type VercelLikeRequest } from '../_lib/http';
+import { readSession } from '../../server/auth';
+import { mapProduct, sql } from '../../server/db';
+import { defineHandler, getPathParam, json, readJson } from '../../server/http';
+
+export const config = {
+  runtime: 'nodejs',
+};
 
 type ProductInput = {
   name?: string;
@@ -19,16 +22,15 @@ type ProductInput = {
   active?: boolean;
 };
 
-export default async function handler(req: VercelLikeRequest, res: ServerResponse) {
-  const id = getPathParam(req, 'id', /\/api\/products\/([^/]+)/);
+export default defineHandler(async (request) => {
+  const id = getPathParam(request, 'id', /\/api\/products\/([^/]+)/);
   if (!id) {
-    sendJson(res, 400, { error: 'ID inválido' });
-    return;
+    return json({ error: 'ID inválido' }, 400);
   }
 
   try {
-    if (req.method === 'GET') {
-      const isAdmin = Boolean(readSession(req));
+    if (request.method === 'GET') {
+      const isAdmin = Boolean(readSession(request));
       const rows = await sql`
         SELECT *
         FROM products
@@ -37,24 +39,20 @@ export default async function handler(req: VercelLikeRequest, res: ServerRespons
       `;
 
       if (rows.length === 0) {
-        sendJson(res, 404, { error: 'Produto não encontrado' });
-        return;
+        return json({ error: 'Produto não encontrado' }, 404);
       }
 
-      sendJson(res, 200, { product: mapProduct(rows[0] as Record<string, unknown>) });
-      return;
+      return json({ product: mapProduct(rows[0] as Record<string, unknown>) });
     }
 
-    if (!readSession(req)) {
-      sendJson(res, 401, { error: 'Não autenticado' });
-      return;
+    if (!readSession(request)) {
+      return json({ error: 'Não autenticado' }, 401);
     }
 
-    if (req.method === 'PATCH') {
-      const body = await readJson<{ active?: boolean }>(req);
+    if (request.method === 'PATCH') {
+      const body = await readJson<{ active?: boolean }>(request);
       if (typeof body.active !== 'boolean') {
-        sendJson(res, 400, { error: 'Status inválido' });
-        return;
+        return json({ error: 'Status inválido' }, 400);
       }
 
       const rows = await sql`
@@ -65,23 +63,19 @@ export default async function handler(req: VercelLikeRequest, res: ServerRespons
       `;
 
       if (rows.length === 0) {
-        sendJson(res, 404, { error: 'Produto não encontrado' });
-        return;
+        return json({ error: 'Produto não encontrado' }, 404);
       }
 
-      sendJson(res, 200, { product: mapProduct(rows[0] as Record<string, unknown>) });
-      return;
+      return json({ product: mapProduct(rows[0] as Record<string, unknown>) });
     }
 
-    if (req.method === 'PUT') {
-      const body = await readJson<ProductInput>(req);
+    if (request.method === 'PUT') {
+      const body = await readJson<ProductInput>(request);
       if (!body.name?.trim() || !body.description?.trim() || !body.category?.trim() || !body.subcategory?.trim()) {
-        sendJson(res, 400, { error: 'Preencha nome, descrição, categoria e subcategoria' });
-        return;
+        return json({ error: 'Preencha nome, descrição, categoria e subcategoria' }, 400);
       }
       if (!Array.isArray(body.images) || body.images.length === 0) {
-        sendJson(res, 400, { error: 'Adicione pelo menos uma imagem' });
-        return;
+        return json({ error: 'Adicione pelo menos uma imagem' }, 400);
       }
 
       const rows = await sql`
@@ -105,27 +99,23 @@ export default async function handler(req: VercelLikeRequest, res: ServerRespons
       `;
 
       if (rows.length === 0) {
-        sendJson(res, 404, { error: 'Produto não encontrado' });
-        return;
+        return json({ error: 'Produto não encontrado' }, 404);
       }
 
-      sendJson(res, 200, { product: mapProduct(rows[0] as Record<string, unknown>) });
-      return;
+      return json({ product: mapProduct(rows[0] as Record<string, unknown>) });
     }
 
-    if (req.method === 'DELETE') {
+    if (request.method === 'DELETE') {
       const rows = await sql`DELETE FROM products WHERE id = ${id} RETURNING id`;
       if (rows.length === 0) {
-        sendJson(res, 404, { error: 'Produto não encontrado' });
-        return;
+        return json({ error: 'Produto não encontrado' }, 404);
       }
-      sendJson(res, 200, { success: true });
-      return;
+      return json({ success: true });
     }
 
-    sendJson(res, 405, { error: 'Method not allowed' });
+    return json({ error: 'Method not allowed' }, 405);
   } catch (error) {
     console.error('Product item error:', error);
-    sendJson(res, 500, { error: 'Erro ao processar produto' });
+    return json({ error: 'Erro ao processar produto' }, 500);
   }
-}
+});

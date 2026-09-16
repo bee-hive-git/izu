@@ -1,8 +1,10 @@
-import type { ServerResponse } from 'http';
-import { parse } from 'url';
-import { readSession } from '../_lib/auth';
-import { mapProduct, sql } from '../_lib/db';
-import { readJson, sendJson, type VercelLikeRequest } from '../_lib/http';
+import { readSession } from '../../server/auth';
+import { mapProduct, sql } from '../../server/db';
+import { defineHandler, getRequestUrl, json, readJson } from '../../server/http';
+
+export const config = {
+  runtime: 'nodejs',
+};
 
 type ProductInput = {
   name?: string;
@@ -30,14 +32,14 @@ function validateProduct(body: ProductInput) {
   return null;
 }
 
-export default async function handler(req: VercelLikeRequest, res: ServerResponse) {
+export default defineHandler(async (request) => {
   try {
-    if (req.method === 'GET') {
-      const query = parse(req.url || '', true).query;
-      const category = typeof query.category === 'string' ? query.category : '';
-      const subcategory = typeof query.subcategory === 'string' ? query.subcategory : '';
-      const search = typeof query.search === 'string' ? query.search : '';
-      const isAdminList = query.all === '1' && Boolean(readSession(req));
+    if (request.method === 'GET') {
+      const query = getRequestUrl(request).searchParams;
+      const category = query.get('category') || '';
+      const subcategory = query.get('subcategory') || '';
+      const search = query.get('search') || '';
+      const isAdminList = query.get('all') === '1' && Boolean(readSession(request));
 
       const rows = await sql`
         SELECT *
@@ -49,21 +51,18 @@ export default async function handler(req: VercelLikeRequest, res: ServerRespons
         ORDER BY created_at DESC
       `;
 
-      sendJson(res, 200, { products: rows.map((row) => mapProduct(row as Record<string, unknown>)) });
-      return;
+      return json({ products: rows.map((row) => mapProduct(row as Record<string, unknown>)) });
     }
 
-    if (req.method === 'POST') {
-      if (!readSession(req)) {
-        sendJson(res, 401, { error: 'Não autenticado' });
-        return;
+    if (request.method === 'POST') {
+      if (!readSession(request)) {
+        return json({ error: 'Não autenticado' }, 401);
       }
 
-      const body = await readJson<ProductInput>(req);
+      const body = await readJson<ProductInput>(request);
       const validationError = validateProduct(body);
       if (validationError) {
-        sendJson(res, 400, { error: validationError });
-        return;
+        return json({ error: validationError }, 400);
       }
 
       const rows = await sql`
@@ -89,13 +88,12 @@ export default async function handler(req: VercelLikeRequest, res: ServerRespons
         RETURNING *
       `;
 
-      sendJson(res, 201, { product: mapProduct(rows[0] as Record<string, unknown>) });
-      return;
+      return json({ product: mapProduct(rows[0] as Record<string, unknown>) }, 201);
     }
 
-    sendJson(res, 405, { error: 'Method not allowed' });
+    return json({ error: 'Method not allowed' }, 405);
   } catch (error) {
     console.error('Products collection error:', error);
-    sendJson(res, 500, { error: 'Erro ao processar produtos' });
+    return json({ error: 'Erro ao processar produtos' }, 500);
   }
-}
+});

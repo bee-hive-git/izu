@@ -4,5 +4,11 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 30,
+      "includeFiles": "server/**"
+    }
+  }
 }

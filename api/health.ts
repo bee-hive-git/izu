@@ -1,15 +1,17 @@
-import type { ServerResponse } from 'http';
-import { sendJson, type VercelLikeRequest } from './_lib/http';
+import { defineHandler, json } from '../server/http';
 
-export default async function handler(req: VercelLikeRequest, res: ServerResponse) {
-  if (req.method !== 'GET') {
-    sendJson(res, 405, { error: 'Method not allowed' });
-    return;
+export const config = {
+  runtime: 'nodejs',
+};
+
+export default defineHandler(async (request) => {
+  if (request.method !== 'GET') {
+    return json({ error: 'Method not allowed' }, 405);
   }
 
-  sendJson(res, 200, {
+  return json({
     ok: true,
     database: Boolean(process.env.DATABASE_URL),
     session: Boolean(process.env.SESSION_SECRET),
   });
-}
+});

@@ -49,9 +49,25 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const text = await response.text();
+  let data: unknown = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
+  }
+
   if (!response.ok) {
-    throw new Error((data as { error?: string }).error || 'Erro na requisição');
+    const message =
+      typeof data === 'object' && data && 'error' in data && typeof data.error === 'string'
+        ? data.error
+        : '';
+    if (message.includes('FUNCTION_INVOCATION_FAILED') || (!message && response.status >= 500)) {
+      throw new Error('Servidor indisponível. Tente de novo em instantes.');
+    }
+    throw new Error(message || 'Erro na requisição');
   }
 
   return data as T;

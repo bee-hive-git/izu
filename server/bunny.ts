@@ -1,5 +1,4 @@
-import { randomUUID } from 'crypto';
-import { readFile } from 'fs/promises';
+import { randomUUID } from 'node:crypto';
 
 const PRODUCT_FOLDER = 'produtos';
 
@@ -78,10 +77,13 @@ function fileExtension(fileName: string, mimeType?: string) {
   return (mimeType && fromMime[mimeType]) || 'jpg';
 }
 
-export async function uploadProductImage(filePath: string, originalName: string, mimeType?: string) {
+export async function uploadProductImageBuffer(
+  body: Buffer | Uint8Array | ArrayBuffer | Blob,
+  originalName: string,
+  mimeType?: string,
+) {
   const extension = fileExtension(originalName, mimeType);
   const path = `${PRODUCT_FOLDER}/${randomUUID()}.${extension}`;
-  const body = await readFile(filePath);
 
   const response = await fetch(storageUrl(path), {
     method: 'PUT',

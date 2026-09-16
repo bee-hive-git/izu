@@ -1,5 +1,4 @@
-import { createHmac, scryptSync, timingSafeEqual } from 'crypto';
-import type { IncomingMessage, ServerResponse } from 'http';
+import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
 import { sql } from './db';
 import { getCookie } from './http';
 
@@ -32,8 +31,8 @@ export function createSessionToken(email: string) {
   return `${encoded}.${sign(encoded)}`;
 }
 
-export function readSession(req: IncomingMessage): SessionPayload | null {
-  const token = getCookie(req, SESSION_COOKIE);
+export function readSession(request: Request): SessionPayload | null {
+  const token = getCookie(request, SESSION_COOKIE);
   if (!token) {
     return null;
   }
@@ -61,20 +60,17 @@ export function readSession(req: IncomingMessage): SessionPayload | null {
   }
 }
 
-export function setSessionCookie(res: ServerResponse, token: string) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader(
-    'Set-Cookie',
-    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 24 * 60 * 60}${secure}`,
-  );
+function cookieFlags() {
+  const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL ? '; Secure' : '';
+  return `Path=/; HttpOnly; SameSite=Lax${secure}`;
 }
 
-export function clearSessionCookie(res: ServerResponse) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader(
-    'Set-Cookie',
-    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`,
-  );
+export function sessionCookie(token: string) {
+  return `${SESSION_COOKIE}=${token}; ${cookieFlags()}; Max-Age=${SESSION_DAYS * 24 * 60 * 60}`;
+}
+
+export function clearSessionCookieValue() {
+  return `${SESSION_COOKIE}=; ${cookieFlags()}; Max-Age=0`;
 }
 
 export async function authenticateUser(email: string, password: string) {

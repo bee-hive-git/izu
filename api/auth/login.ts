@@ -1,37 +1,44 @@
-import type { ServerResponse } from 'http';
-import { authenticateUser, createSessionToken, setSessionCookie } from '../_lib/auth';
-import { readJson, sendJson, type VercelLikeRequest } from '../_lib/http';
+import { authenticateUser, createSessionToken, sessionCookie } from '../../server/auth';
+import { defineHandler, json, readJson } from '../../server/http';
 
-export default async function handler(req: VercelLikeRequest, res: ServerResponse) {
-  if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Method not allowed' });
-    return;
+export const config = {
+  runtime: 'nodejs',
+};
+
+export default defineHandler(async (request) => {
+  if (request.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
   }
 
   try {
-    const body = await readJson<{ email?: string; password?: string }>(req);
+    const body = await readJson<{ email?: string; password?: string }>(request);
     const email = body.email?.trim() || '';
     const password = body.password || '';
 
     if (!email || !password) {
-      sendJson(res, 401, { error: 'Email ou senha inválidos' });
-      return;
+      return json({ error: 'Email ou senha inválidos' }, 401);
     }
 
     const user = await authenticateUser(email, password);
     if (!user) {
-      sendJson(res, 401, { error: 'Email ou senha inválidos' });
-      return;
+      return json({ error: 'Email ou senha inválidos' }, 401);
     }
 
-    setSessionCookie(res, createSessionToken(user.email));
-    sendJson(res, 200, { email: user.email });
+    return json(
+      { email: user.email },
+      200,
+      { 'Set-Cookie': sessionCookie(createSessionToken(user.email)) },
+    );
   } catch (error) {
     console.error('Login error:', error);
-    sendJson(res, 500, {
-      error: error instanceof Error && error.message.includes('DATABASE_URL')
-        ? 'Banco não configurado'
-        : 'Erro ao entrar',
-    });
+    return json(
+      {
+        error:
+          error instanceof Error && error.message.includes('DATABASE_URL')
+            ? 'Banco não configurado'
+            : 'Erro ao entrar',
+      },
+      500,
+    );
   }
-}
+});

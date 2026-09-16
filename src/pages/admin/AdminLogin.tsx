@@ -52,7 +52,9 @@ export function AdminLogin() {
               <label htmlFor="email" className="text-sm font-medium text-slate-700">Email</label>
               <Input
                 id="email"
+                name="email"
                 type="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -64,7 +66,9 @@ export function AdminLogin() {
               <label htmlFor="password" className="text-sm font-medium text-slate-700">Senha</label>
               <Input
                 id="password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

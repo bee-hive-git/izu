@@ -1,13 +1,14 @@
-import type { ServerResponse } from 'http';
-import { clearSessionCookie } from '../_lib/auth';
-import { sendJson, type VercelLikeRequest } from '../_lib/http';
+import { clearSessionCookieValue } from '../../server/auth';
+import { defineHandler, json } from '../../server/http';
 
-export default async function handler(req: VercelLikeRequest, res: ServerResponse) {
-  if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Method not allowed' });
-    return;
+export const config = {
+  runtime: 'nodejs',
+};
+
+export default defineHandler(async (request) => {
+  if (request.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
   }
 
-  clearSessionCookie(res);
-  sendJson(res, 200, { success: true });
-}
+  return json({ success: true }, 200, { 'Set-Cookie': clearSessionCookieValue() });
+});

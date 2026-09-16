@@ -1,43 +1,42 @@
-import { IncomingMessage, ServerResponse } from 'http';
-import formidable from 'formidable';
-import { readSession } from './_lib/auth';
-import { uploadProductImage } from './_lib/bunny';
-import { sendJson } from './_lib/http';
+import { readSession } from '../server/auth';
+import { uploadProductImageBuffer } from '../server/bunny';
+import { defineHandler, json } from '../server/http';
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  runtime: 'nodejs',
 };
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Method not allowed' });
-    return;
+export default defineHandler(async (request) => {
+  if (request.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
   }
 
-  if (!readSession(req)) {
-    sendJson(res, 401, { error: 'Não autenticado' });
-    return;
+  if (!readSession(request)) {
+    return json({ error: 'Não autenticado' }, 401);
   }
-
-  const form = formidable({ keepExtensions: true });
 
   try {
-    const [, files] = await form.parse(req);
-    const file = files.file?.[0];
+    const form = await request.formData();
+    const file = form.get('file');
 
-    if (!file) {
-      sendJson(res, 400, { error: 'No file provided' });
-      return;
+    if (!(file instanceof File) || file.size === 0) {
+      return json({ error: 'No file provided' }, 400);
     }
 
-    const result = await uploadProductImage(file.filepath, file.originalFilename || 'image.jpg', file.mimetype || undefined);
-    sendJson(res, 200, result);
+    const result = await uploadProductImageBuffer(
+      await file.arrayBuffer(),
+      file.name || 'image.jpg',
+      file.type || undefined,
+    );
+
+    return json(result);
   } catch (error) {
     console.error('Upload error:', error);
-    sendJson(res, 500, {
-      error: error instanceof Error ? error.message : 'Error uploading image',
-    });
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Error uploading image',
+      },
+      500,
+    );
   }
-}
+});

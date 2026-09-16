@@ -1,32 +1,32 @@
-import { IncomingMessage, ServerResponse } from 'http';
-import { readSession } from './_lib/auth';
-import { deleteProductImage } from './_lib/bunny';
-import { readJson, sendJson } from './_lib/http';
+import { readSession } from '../server/auth';
+import { deleteProductImage } from '../server/bunny';
+import { defineHandler, json, readJson } from '../server/http';
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (req.method !== 'DELETE') {
-    sendJson(res, 405, { error: 'Method not allowed' });
-    return;
+export const config = {
+  runtime: 'nodejs',
+};
+
+export default defineHandler(async (request) => {
+  if (request.method !== 'DELETE') {
+    return json({ error: 'Method not allowed' }, 405);
   }
 
-  if (!readSession(req)) {
-    sendJson(res, 401, { error: 'Não autenticado' });
-    return;
+  if (!readSession(request)) {
+    return json({ error: 'Não autenticado' }, 401);
   }
 
   try {
-    const body = await readJson<{ public_id?: string }>(req);
+    const body = await readJson<{ public_id?: string }>(request);
     const { public_id } = body;
 
     if (!public_id) {
-      sendJson(res, 400, { error: 'Missing public_id' });
-      return;
+      return json({ error: 'Missing public_id' }, 400);
     }
 
     await deleteProductImage(public_id);
-    sendJson(res, 200, { success: true });
+    return json({ success: true });
   } catch (error) {
     console.error('Delete error:', error);
-    sendJson(res, 500, { error: 'Error deleting image' });
+    return json({ error: 'Error deleting image' }, 500);
   }
-}
+});
