@@ -1,5 +1,6 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, scryptSync, timingSafeEqual } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { sql } from './db';
 import { getCookie } from './http';
 
 export const SESSION_COOKIE = 'izu_session';
@@ -76,21 +77,34 @@ export function clearSessionCookie(res: ServerResponse) {
   );
 }
 
-export function credentialsMatch(email: string, password: string) {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminEmail || !adminPassword) {
-    throw new Error('Missing ADMIN_EMAIL or ADMIN_PASSWORD environment variables');
+export async function authenticateUser(email: string, password: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized || !password) {
+    return null;
   }
 
-  const emailOk = email.trim().toLowerCase() === adminEmail.trim().toLowerCase();
-  const provided = Buffer.from(password);
-  const expected = Buffer.from(adminPassword);
+  const rows = await sql`
+    SELECT email, password_hash
+    FROM users
+    WHERE lower(email) = ${normalized}
+    LIMIT 1
+  `;
 
-  if (provided.length !== expected.length) {
-    return false;
+  if (rows.length === 0) {
+    return null;
   }
 
-  return emailOk && timingSafeEqual(provided, expected);
+  const stored = String(rows[0].password_hash);
+  const [salt, hash] = stored.split(':');
+  if (!salt || !hash) {
+    return null;
+  }
+
+  const provided = scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, 'hex');
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+    return null;
+  }
+
+  return { email: String(rows[0].email) };
 }

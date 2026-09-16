@@ -15,12 +15,12 @@ export function ForgotPassword() {
           </div>
           <CardTitle className="text-center text-xl font-bold">Recuperar Senha</CardTitle>
           <CardDescription className="text-center">
-            A senha do painel é definida no servidor, na variável ADMIN_PASSWORD.
+            A senha do painel fica cadastrada no banco de dados, na tabela de usuários.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <p className="text-sm text-slate-600 text-center">
-            Atualize essa variável no ambiente de produção e faça login novamente.
+            Peça a quem administra o sistema para atualizar a senha desse usuário.
           </p>
           <div className="text-center pt-2">
             <Button variant="link" asChild className="text-sm text-slate-500 hover:text-primary">
