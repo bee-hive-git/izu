@@ -28,6 +28,10 @@ export default async function handler(req: VercelLikeRequest, res: ServerRespons
     sendJson(res, 200, { email: user.email });
   } catch (error) {
     console.error('Login error:', error);
-    sendJson(res, 500, { error: 'Erro ao entrar' });
+    sendJson(res, 500, {
+      error: error instanceof Error && error.message.includes('DATABASE_URL')
+        ? 'Banco não configurado'
+        : 'Erro ao entrar',
+    });
   }
 }

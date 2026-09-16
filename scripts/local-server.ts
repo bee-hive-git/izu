@@ -8,6 +8,7 @@ import logoutHandler from '../api/auth/logout';
 import meHandler from '../api/auth/me';
 import productsHandler from '../api/products/index';
 import productItemHandler from '../api/products/[id]';
+import healthHandler from '../api/health';
 
 const PORT = 3001;
 
@@ -28,7 +29,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    if (pathname === '/api/upload') {
+    if (pathname === '/api/health') {
+      await healthHandler(req, res);
+    } else if (pathname === '/api/upload') {
       await uploadHandler(req, res);
     } else if (pathname === '/api/delete') {
       await deleteHandler(req, res);

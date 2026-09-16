@@ -1,12 +1,36 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
-const databaseUrl = process.env.DATABASE_URL;
+type SqlClient = NeonQueryFunction<false, false>;
 
-if (!databaseUrl) {
-  throw new Error('Missing DATABASE_URL environment variable');
+let sqlClient: SqlClient | undefined;
+
+function getDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (!databaseUrl) {
+    throw new Error('Missing DATABASE_URL environment variable');
+  }
+
+  try {
+    const parsed = new URL(databaseUrl);
+    parsed.searchParams.delete('channel_binding');
+    if (!parsed.searchParams.has('sslmode')) {
+      parsed.searchParams.set('sslmode', 'require');
+    }
+    return parsed.toString();
+  } catch {
+    return databaseUrl;
+  }
 }
 
-export const sql = neon(databaseUrl);
+function getSql() {
+  if (!sqlClient) {
+    sqlClient = neon(getDatabaseUrl());
+  }
+  return sqlClient;
+}
+
+export const sql = ((strings: TemplateStringsArray, ...values: unknown[]) =>
+  getSql()(strings, ...values)) as SqlClient;
 
 export type ProductRecord = {
   id: string;
