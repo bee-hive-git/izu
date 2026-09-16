@@ -64,18 +64,62 @@ export function ProductDetail() {
     window.open(url, '_blank');
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      <Button variant="ghost" asChild className="mb-4">
-        <Link to="/produtos" className="flex items-center gap-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar
-        </Link>
-      </Button>
+  const categoryPath = product.category
+    ? `/produtos/${encodeURIComponent(product.category)}`
+    : '/produtos';
+  const subcategoryPath = product.category && product.subcategory
+    ? `/produtos/${encodeURIComponent(product.category)}/${encodeURIComponent(product.subcategory)}`
+    : categoryPath;
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Gallery */}
-        <div className="space-y-4">
-          <div className="aspect-square bg-slate-100 rounded-xl overflow-hidden border">
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-6 lg:space-y-8">
+      <nav className="flex items-center gap-2 min-w-0 text-sm font-semibold tracking-wider uppercase text-primary">
+        <Link
+          to={categoryPath}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-slate-100"
+          aria-label="Voltar"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <Link to={categoryPath} className="truncate hover:underline">
+            {product.category}
+          </Link>
+          {product.subcategory && (
+            <>
+              <span className="text-primary/60 shrink-0">&gt;</span>
+              <Link to={subcategoryPath} className="truncate hover:underline">
+                {product.subcategory}
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-x-12 lg:gap-y-4">
+        <div className="order-1 lg:col-start-2 lg:row-start-1">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">{product.name}</h1>
+        </div>
+
+        <div className="order-2 flex flex-col-reverse gap-3 lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:flex-row lg:items-start">
+          {product.images?.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory lg:flex-col lg:w-24 lg:overflow-x-hidden lg:overflow-y-auto lg:max-h-[36rem] lg:pb-0 lg:snap-none">
+              {product.images.map((img, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setSelectedImage(i)}
+                  className={cn(
+                    "aspect-square w-16 sm:w-20 shrink-0 snap-start rounded-md border-2 overflow-hidden bg-slate-50 lg:w-full",
+                    selectedImage === i ? "border-primary" : "border-transparent hover:border-slate-300"
+                  )}
+                >
+                  <img src={img} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="aspect-[4/3] w-full bg-slate-100 rounded-xl overflow-hidden border lg:aspect-square">
             {product.images?.[selectedImage] ? (
               <img 
                 src={product.images[selectedImage]} 
@@ -86,32 +130,9 @@ export function ProductDetail() {
               <div className="w-full h-full flex items-center justify-center text-slate-300">Sem imagem</div>
             )}
           </div>
-          {product.images?.length > 1 && (
-            <div className="grid grid-cols-4 gap-4">
-              {product.images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={cn(
-                    "aspect-square rounded-md border-2 overflow-hidden bg-slate-50",
-                    selectedImage === i ? "border-primary" : "border-transparent"
-                  )}
-                >
-                  <img src={img} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Info */}
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <span className="text-primary font-semibold tracking-wider uppercase text-sm">
-              {product.category} {product.subcategory && `> ${product.subcategory}`}
-            </span>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900">{product.name}</h1>
-          </div>
+        <div className="order-3 space-y-8 lg:col-start-2 lg:row-start-2">
 
           <div className="space-y-4">
             <h3 className="font-bold text-lg">Descrição</h3>

@@ -43,10 +43,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers.set('Content-Type', 'application/json');
   }
 
+  const { signal, ...rest } = options ?? {};
   const response = await fetch(path, {
     credentials: 'include',
-    ...options,
+    ...rest,
     headers,
+    signal: signal ?? AbortSignal.timeout(15000),
   });
 
   const text = await response.text();

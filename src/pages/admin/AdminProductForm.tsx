@@ -13,7 +13,9 @@ import { CATEGORIES, PRODUCT_COLOR_PRESETS } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
 import { ImageUploader } from '@/components/ImageUploader';
 import { getStoragePathFromImageUrl } from '@/hooks/useImageUpload';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { FieldErrors } from 'react-hook-form';
 
 const productSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -50,6 +52,43 @@ const DEFAULT_FORM_VALUES: ProductFormValues = {
   additional_info: '',
 };
 
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Nome',
+  description: 'Descrição',
+  category: 'Categoria',
+  subcategory: 'Subcategoria',
+  height: 'Altura',
+  width: 'Largura',
+  depth: 'Profundidade',
+};
+
+function formatFormErrors(errors: FieldErrors<ProductFormValues>) {
+  const names = Object.keys(errors)
+    .map((key) => FIELD_LABELS[key] || key);
+  if (names.length === 0) {
+    return 'Preencha os campos obrigatórios.';
+  }
+  if (names.length === 1) {
+    return `${names[0]} é obrigatório.`;
+  }
+  const last = names.pop();
+  return `Preencha: ${names.join(', ')} e ${last}.`;
+}
+
+function scrollToField(field: string) {
+  const element = document.getElementById(`field-${field}`);
+  element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function FormAlert({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm">
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+      <p className="text-sm font-medium">{message}</p>
+    </div>
+  );
+}
+
 const getDraftStorageKey = (productId?: string) => `admin-product-form-draft:${productId ?? 'new'}`;
 
 export function AdminProductForm() {
@@ -57,6 +96,7 @@ export function AdminProductForm() {
   const navigate = useNavigate();
   const isEditing = !!id;
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [colors, setColors] = useState<string[]>([]);
@@ -65,6 +105,7 @@ export function AdminProductForm() {
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
     defaultValues: DEFAULT_FORM_VALUES,
+    shouldFocusError: true,
   });
 
   const draftStorageKey = getDraftStorageKey(id);
@@ -171,16 +212,35 @@ export function AdminProductForm() {
     }
   };
 
+  const handleCategoryChange = (value: string) => {
+    const nextSubcategories = CATEGORIES.find((category) => category.name === value)?.subcategories || [];
+    form.setValue('category', value, { shouldDirty: true, shouldValidate: true });
+    form.setValue('subcategory', nextSubcategories.length === 0 ? value : '', {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setFormError(null);
+  };
+
+  const onInvalid = (errors: FieldErrors<ProductFormValues>) => {
+    const message = formatFormErrors(errors);
+    setFormError(message);
+    const firstField = Object.keys(errors)[0];
+    if (firstField) {
+      scrollToField(firstField);
+    }
+  };
+
   const onSubmit = async (data: ProductFormValues) => {
-    setLoading(true);
-    
     if (images.length === 0) {
-      alert("Adicione pelo menos uma imagem.");
-      setLoading(false);
+      setFormError('Adicione pelo menos uma imagem.');
+      scrollToField('images');
       return;
     }
 
-    // Reordenar imagens para que a capa seja a primeira
+    setFormError(null);
+    setLoading(true);
+
     const sortedImages = [...images];
     if (coverImage) {
       const coverIndex = sortedImages.findIndex(img => img.url === coverImage);
@@ -210,19 +270,46 @@ export function AdminProductForm() {
       navigate('/admin/produtos');
     } catch (error) {
       console.error(error);
-      alert('Erro ao salvar produto');
+      setFormError(error instanceof Error ? error.message : 'Erro ao salvar produto');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
   };
 
+  if (!draftReady) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p>Carregando formulário...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto pb-20">
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-xl bg-white px-6 py-4 shadow-xl">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <p className="font-medium text-slate-800">Salvando produto...</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-bold text-slate-900">{isEditing ? 'Editar Produto' : 'Novo Produto'}</h2>
       </div>
+
+      {formError && (
+        <div className="fixed top-4 left-4 right-4 z-50 md:left-72 md:right-8">
+          <div className="mx-auto max-w-4xl">
+            <FormAlert message={formError} />
+          </div>
+        </div>
+      )}
       
-      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-10">
+      <form onSubmit={form.handleSubmit(onSubmit as any, onInvalid)} className="space-y-10">
         {/* Informações Básicas */}
         <Card className="border border-slate-200 shadow-md overflow-hidden">
           <CardHeader className="bg-slate-50 border-b border-slate-200 py-4 px-6">
@@ -232,23 +319,40 @@ export function AdminProductForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 space-y-6 bg-white">
-            <div className="space-y-2">
+            <div id="field-name" className="space-y-2">
               <Label className="text-base font-semibold text-slate-700">Nome do Produto</Label>
-              <Input {...form.register('name')} className="bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12 text-base" placeholder="Ex: Mochila Executiva Premium" />
+              <Input
+                {...form.register('name')}
+                className={cn(
+                  "bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12 text-base",
+                  form.formState.errors.name && "border-red-500 focus:border-red-500 focus:ring-red-200",
+                )}
+                placeholder="Ex: Mochila Executiva Premium"
+              />
               {form.formState.errors.name && <p className="text-red-500 text-sm font-medium mt-1">{form.formState.errors.name.message}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div id="field-description" className="space-y-2">
               <Label className="text-base font-semibold text-slate-700">Descrição</Label>
-              <Textarea {...form.register('description')} className="min-h-[150px] bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm text-base p-4" placeholder="Descreva os detalhes do produto..." />
+              <Textarea
+                {...form.register('description')}
+                className={cn(
+                  "min-h-[150px] bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm text-base p-4",
+                  form.formState.errors.description && "border-red-500 focus:border-red-500 focus:ring-red-200",
+                )}
+                placeholder="Descreva os detalhes do produto..."
+              />
               {form.formState.errors.description && <p className="text-red-500 text-sm font-medium mt-1">{form.formState.errors.description.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
+              <div id="field-category" className="space-y-2">
                 <Label className="text-base font-semibold text-slate-700">Categoria</Label>
-                <Select onValueChange={(val) => form.setValue('category', val)} defaultValue={form.getValues('category')} value={form.watch('category')}>
-                  <SelectTrigger className="bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12">
+                <Select onValueChange={handleCategoryChange} value={form.watch('category') || undefined}>
+                  <SelectTrigger className={cn(
+                    "bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12",
+                    form.formState.errors.category && "border-red-500 focus:ring-red-200",
+                  )}>
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -260,21 +364,31 @@ export function AdminProductForm() {
                 {form.formState.errors.category && <p className="text-red-500 text-sm font-medium mt-1">{form.formState.errors.category.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-base font-semibold text-slate-700">Subcategoria</Label>
-                <Select onValueChange={(val) => form.setValue('subcategory', val)} defaultValue={form.getValues('subcategory')} value={form.watch('subcategory')}>
-                  <SelectTrigger className="bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12">
-                    <SelectValue placeholder="Selecione uma subcategoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subcategories.map(sub => (
-                      <SelectItem key={sub} value={sub} className="py-3 cursor-pointer">{sub}</SelectItem>
-                    ))}
-                    {subcategories.length === 0 && <SelectItem value="default" disabled>Selecione uma categoria primeiro</SelectItem>}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.subcategory && <p className="text-red-500 text-sm font-medium mt-1">{form.formState.errors.subcategory.message}</p>}
-              </div>
+              {subcategories.length > 0 && (
+                <div id="field-subcategory" className="space-y-2">
+                  <Label className="text-base font-semibold text-slate-700">Subcategoria</Label>
+                  <Select
+                    onValueChange={(val) => {
+                      form.setValue('subcategory', val, { shouldDirty: true, shouldValidate: true });
+                      setFormError(null);
+                    }}
+                    value={form.watch('subcategory') || undefined}
+                  >
+                    <SelectTrigger className={cn(
+                      "bg-white border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm h-12",
+                      form.formState.errors.subcategory && "border-red-500 focus:ring-red-200",
+                    )}>
+                      <SelectValue placeholder="Selecione uma subcategoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategories.map(sub => (
+                        <SelectItem key={sub} value={sub} className="py-3 cursor-pointer">{sub}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.subcategory && <p className="text-red-500 text-sm font-medium mt-1">{form.formState.errors.subcategory.message}</p>}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -288,7 +402,7 @@ export function AdminProductForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 space-y-8 bg-white">
-            <div className="space-y-4">
+            <div id="field-images" className="space-y-4">
                <Label className="text-base font-semibold text-slate-700 block">Imagens do Produto</Label>
                <ImageUploader 
                  value={images} 
@@ -381,12 +495,19 @@ export function AdminProductForm() {
         </Card>
 
         {/* Botões de Ação */}
-        <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 mt-10">
-          <Button type="button" variant="outline" onClick={() => navigate('/admin/produtos')} className="px-8 h-12 text-base border-slate-300 hover:bg-slate-50">Cancelar</Button>
-          <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 px-10 h-12 text-base font-bold shadow-lg shadow-green-600/20">
-            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-            Salvar Produto
-          </Button>
+        <div className="flex flex-col items-end gap-4 pt-6 border-t border-slate-200 mt-10">
+          {formError && (
+            <div className="w-full">
+              <FormAlert message={formError} />
+            </div>
+          )}
+          <div className="flex justify-end gap-4">
+            <Button type="button" variant="outline" onClick={() => navigate('/admin/produtos')} className="px-8 h-12 text-base border-slate-300 hover:bg-slate-50" disabled={loading}>Cancelar</Button>
+            <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 px-10 h-12 text-base font-bold shadow-lg shadow-green-600/20">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+              {loading ? 'Salvando...' : 'Salvar Produto'}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

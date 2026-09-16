@@ -8,12 +8,17 @@ export function useAuth() {
   useEffect(() => {
     let cancelled = false;
 
-    authApi.me().then((currentSession) => {
-      if (!cancelled) {
-        setSession(currentSession);
-        setLoading(false);
-      }
-    });
+    authApi.me()
+      .then((currentSession) => {
+        if (!cancelled) {
+          setSession(currentSession);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;
