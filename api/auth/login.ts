@@ -1,11 +1,7 @@
-import { authenticateUser, createSessionToken, sessionCookie } from '../../server/auth';
-import { defineHandler, json, readJson } from '../../server/http';
+import { authenticateUser, createSessionToken, sessionCookie } from '../_lib/auth';
+import { defineHandler, json, readJson } from '../_lib/http';
 
-export const config = {
-  runtime: 'nodejs',
-};
-
-export default defineHandler(async (request) => {
+const handler = defineHandler(async (request) => {
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -42,3 +38,6 @@ export default defineHandler(async (request) => {
     );
   }
 });
+
+export const POST = handler.fetch;
+export default handler;

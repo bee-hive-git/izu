@@ -9,7 +9,7 @@ import meHandler from '../api/auth/me';
 import productsHandler from '../api/products/index';
 import productItemHandler from '../api/products/[id]';
 import healthHandler from '../api/health';
-import { nodeToRequest, writeNodeResponse, type AppHandler } from '../server/http';
+import { nodeToRequest, writeNodeResponse, type AppHandler } from '../api/_lib/http';
 
 const PORT = 3001;
 

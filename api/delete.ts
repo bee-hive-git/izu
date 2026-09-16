@@ -1,12 +1,8 @@
-import { readSession } from '../server/auth';
-import { deleteProductImage } from '../server/bunny';
-import { defineHandler, json, readJson } from '../server/http';
+import { readSession } from './_lib/auth';
+import { deleteProductImage } from './_lib/bunny';
+import { defineHandler, json, readJson } from './_lib/http';
 
-export const config = {
-  runtime: 'nodejs',
-};
-
-export default defineHandler(async (request) => {
+const handler = defineHandler(async (request) => {
   if (request.method !== 'DELETE') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -30,3 +26,6 @@ export default defineHandler(async (request) => {
     return json({ error: 'Error deleting image' }, 500);
   }
 });
+
+export const DELETE = handler.fetch;
+export default handler;

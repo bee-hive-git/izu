@@ -1,10 +1,6 @@
-import { readSession } from '../../server/auth';
-import { mapProduct, sql } from '../../server/db';
-import { defineHandler, getPathParam, json, readJson } from '../../server/http';
-
-export const config = {
-  runtime: 'nodejs',
-};
+import { readSession } from '../_lib/auth';
+import { mapProduct, sql } from '../_lib/db';
+import { defineHandler, getPathParam, json, readJson } from '../_lib/http';
 
 type ProductInput = {
   name?: string;
@@ -22,7 +18,7 @@ type ProductInput = {
   active?: boolean;
 };
 
-export default defineHandler(async (request) => {
+const handler = defineHandler(async (request) => {
   const id = getPathParam(request, 'id', /\/api\/products\/([^/]+)/);
   if (!id) {
     return json({ error: 'ID inválido' }, 400);
@@ -119,3 +115,9 @@ export default defineHandler(async (request) => {
     return json({ error: 'Erro ao processar produto' }, 500);
   }
 });
+
+export const GET = handler.fetch;
+export const PUT = handler.fetch;
+export const PATCH = handler.fetch;
+export const DELETE = handler.fetch;
+export default handler;

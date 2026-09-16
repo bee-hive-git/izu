@@ -1,12 +1,8 @@
-import { readSession } from '../server/auth';
-import { uploadProductImageBuffer } from '../server/bunny';
-import { defineHandler, json } from '../server/http';
+import { readSession } from './_lib/auth';
+import { uploadProductImageBuffer } from './_lib/bunny';
+import { defineHandler, json } from './_lib/http';
 
-export const config = {
-  runtime: 'nodejs',
-};
-
-export default defineHandler(async (request) => {
+const handler = defineHandler(async (request) => {
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -40,3 +36,6 @@ export default defineHandler(async (request) => {
     );
   }
 });
+
+export const POST = handler.fetch;
+export default handler;

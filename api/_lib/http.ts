@@ -1,3 +1,7 @@
+export type AppHandler = {
+  fetch: (request: Request) => Promise<Response>;
+};
+
 type NodeLikeRequest = {
   method?: string;
   url?: string;
@@ -9,17 +13,9 @@ type NodeLikeRequest = {
 type NodeLikeResponse = {
   statusCode?: number;
   status?: (code: number) => NodeLikeResponse;
-  json?: (data: unknown) => unknown;
   send?: (body: unknown) => unknown;
   setHeader?: (key: string, value: string | string[]) => void;
   end?: (body?: string | Uint8Array) => void;
-};
-
-export type AppHandler = ((
-  req: unknown,
-  res?: NodeLikeResponse,
-) => Promise<Response | void>) & {
-  fetch: (request: Request) => Promise<Response>;
 };
 
 function headerValue(value: string | string[] | undefined) {
@@ -27,15 +23,6 @@ function headerValue(value: string | string[] | undefined) {
     return '';
   }
   return Array.isArray(value) ? value.join(', ') : value;
-}
-
-function isNodeResponse(res: unknown): res is NodeLikeResponse {
-  if (!res || typeof res !== 'object') {
-    return false;
-  }
-
-  const candidate = res as NodeLikeResponse;
-  return typeof candidate.end === 'function' || typeof candidate.json === 'function' || typeof candidate.send === 'function';
 }
 
 export function json(data: unknown, status = 200, headers?: Headers | Record<string, string>) {
@@ -180,28 +167,17 @@ export async function writeNodeResponse(res: NodeLikeResponse, response: Respons
 }
 
 export function defineHandler(fetchHandler: (request: Request) => Promise<Response>): AppHandler {
-  const nodeHandler = async (req: unknown, res?: NodeLikeResponse) => {
-    try {
-      const request = req instanceof Request ? req : await nodeToRequest(req);
-      const response = await fetchHandler(request);
-      if (isNodeResponse(res)) {
-        await writeNodeResponse(res, response);
-        return;
+  return {
+    async fetch(request: Request) {
+      try {
+        return await fetchHandler(request);
+      } catch (error) {
+        console.error('Handler error:', error);
+        return json(
+          { error: error instanceof Error ? error.message : 'Erro interno' },
+          500,
+        );
       }
-      return response;
-    } catch (error) {
-      console.error('Handler error:', error);
-      const payload = {
-        error: error instanceof Error ? error.message : 'Erro interno',
-      };
-      const response = json(payload, 500);
-      if (isNodeResponse(res)) {
-        await writeNodeResponse(res, response);
-        return;
-      }
-      return response;
-    }
+    },
   };
-
-  return Object.assign(nodeHandler, { fetch: fetchHandler });
 }

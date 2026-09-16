@@ -1,10 +1,6 @@
-import { readSession } from '../../server/auth';
-import { mapProduct, sql } from '../../server/db';
-import { defineHandler, getRequestUrl, json, readJson } from '../../server/http';
-
-export const config = {
-  runtime: 'nodejs',
-};
+import { readSession } from '../_lib/auth';
+import { mapProduct, sql } from '../_lib/db';
+import { defineHandler, getRequestUrl, json, readJson } from '../_lib/http';
 
 type ProductInput = {
   name?: string;
@@ -32,7 +28,7 @@ function validateProduct(body: ProductInput) {
   return null;
 }
 
-export default defineHandler(async (request) => {
+const handler = defineHandler(async (request) => {
   try {
     if (request.method === 'GET') {
       const query = getRequestUrl(request).searchParams;
@@ -97,3 +93,7 @@ export default defineHandler(async (request) => {
     return json({ error: 'Erro ao processar produtos' }, 500);
   }
 });
+
+export const GET = handler.fetch;
+export const POST = handler.fetch;
+export default handler;
