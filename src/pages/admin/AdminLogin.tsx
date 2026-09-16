@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,11 +76,6 @@ export function AdminLogin() {
             <Button type="submit" className="w-full font-bold" disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
-            <div className="text-center pt-2">
-              <Link to="/admin/esqueci-senha" className="text-sm text-primary hover:underline">
-                Esqueci minha senha
-              </Link>
-            </div>
           </form>
         </CardContent>
       </Card>

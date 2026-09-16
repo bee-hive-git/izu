@@ -8,7 +8,6 @@ import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
-import { ForgotPassword } from './pages/admin/ForgotPassword';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
@@ -27,7 +26,6 @@ function App() {
       
       {/* Admin Routes */}
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin/esqueci-senha" element={<ForgotPassword />} />
       
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
