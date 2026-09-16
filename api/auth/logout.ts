@@ -1,5 +1,5 @@
-import { clearSessionCookieValue } from '../_lib/auth';
-import { defineHandler, json } from '../_lib/http';
+import { clearSessionCookieValue } from '../_lib/auth.js';
+import { defineHandler, json } from '../_lib/http.js';
 
 const handler = defineHandler(async (request) => {
   if (request.method !== 'POST') {

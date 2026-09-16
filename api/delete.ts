@@ -1,6 +1,6 @@
-import { readSession } from './_lib/auth';
-import { deleteProductImage } from './_lib/bunny';
-import { defineHandler, json, readJson } from './_lib/http';
+import { readSession } from './_lib/auth.js';
+import { deleteProductImage } from './_lib/bunny.js';
+import { defineHandler, json, readJson } from './_lib/http.js';
 
 const handler = defineHandler(async (request) => {
   if (request.method !== 'DELETE') {

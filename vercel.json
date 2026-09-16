@@ -4,5 +4,19 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/auth/*.ts": {
+      "includeFiles": "api/_lib/**"
+    },
+    "api/products/*.ts": {
+      "includeFiles": "api/_lib/**"
+    },
+    "api/upload.ts": {
+      "includeFiles": "api/_lib/**"
+    },
+    "api/delete.ts": {
+      "includeFiles": "api/_lib/**"
+    }
+  }
 }

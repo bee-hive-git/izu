@@ -1,8 +1,6 @@
-import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 
-type SqlClient = NeonQueryFunction<false, false>;
-
-let sqlClient: SqlClient | undefined;
+let sqlClient;
 
 function getDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -29,29 +27,9 @@ function getSql() {
   return sqlClient;
 }
 
-export const sql = ((strings: TemplateStringsArray, ...values: unknown[]) =>
-  getSql()(strings, ...values)) as SqlClient;
+export const sql = (strings, ...values) => getSql()(strings, ...values);
 
-export type ProductRecord = {
-  id: string;
-  name: string;
-  description: string;
-  images: string[];
-  height: number;
-  width: number;
-  depth: number;
-  colors: string[];
-  category: string;
-  subcategory: string;
-  weight: number | null;
-  engraving_dimensions: string | null;
-  additional_info: string | null;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export function mapProduct(row: Record<string, unknown>): ProductRecord {
+export function mapProduct(row) {
   return {
     id: String(row.id),
     name: String(row.name),

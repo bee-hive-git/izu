@@ -1,35 +1,15 @@
-export type AppHandler = {
-  fetch: (request: Request) => Promise<Response>;
-};
-
-type NodeLikeRequest = {
-  method?: string;
-  url?: string;
-  headers?: Record<string, string | string[] | undefined>;
-  body?: unknown;
-  [Symbol.asyncIterator]?: () => AsyncIterableIterator<unknown>;
-};
-
-type NodeLikeResponse = {
-  statusCode?: number;
-  status?: (code: number) => NodeLikeResponse;
-  send?: (body: unknown) => unknown;
-  setHeader?: (key: string, value: string | string[]) => void;
-  end?: (body?: string | Uint8Array) => void;
-};
-
-function headerValue(value: string | string[] | undefined) {
+function headerValue(value) {
   if (!value) {
     return '';
   }
   return Array.isArray(value) ? value.join(', ') : value;
 }
 
-export function json(data: unknown, status = 200, headers?: Headers | Record<string, string>) {
+export function json(data, status = 200, headers) {
   return Response.json(data, { status, headers });
 }
 
-export function getRequestUrl(request: Request) {
+export function getRequestUrl(request) {
   try {
     return new URL(request.url);
   } catch {
@@ -37,7 +17,7 @@ export function getRequestUrl(request: Request) {
   }
 }
 
-export function getCookie(request: Request, name: string) {
+export function getCookie(request, name) {
   const header = request.headers.get('cookie');
   if (!header) {
     return undefined;
@@ -53,7 +33,7 @@ export function getCookie(request: Request, name: string) {
   return undefined;
 }
 
-export function getPathParam(request: Request, name: string, fallbackPath: RegExp) {
+export function getPathParam(request, name, fallbackPath) {
   const url = getRequestUrl(request);
   const fromQuery = url.searchParams.get(name);
   if (fromQuery) {
@@ -63,15 +43,15 @@ export function getPathParam(request: Request, name: string, fallbackPath: RegEx
   return url.pathname.match(fallbackPath)?.[1];
 }
 
-export async function readJson<T>(request: Request): Promise<T> {
+export async function readJson(request) {
   try {
-    return (await request.json()) as T;
+    return await request.json();
   } catch {
-    return {} as T;
+    return {};
   }
 }
 
-async function readNodeBody(req: NodeLikeRequest) {
+async function readNodeBody(req) {
   if (req.body != null) {
     if (typeof req.body === 'string' || req.body instanceof Uint8Array) {
       return req.body;
@@ -83,8 +63,8 @@ async function readNodeBody(req: NodeLikeRequest) {
     return undefined;
   }
 
-  const chunks: Uint8Array[] = [];
-  for await (const chunk of req as AsyncIterable<unknown>) {
+  const chunks = [];
+  for await (const chunk of req) {
     if (typeof chunk === 'string') {
       chunks.push(new TextEncoder().encode(chunk));
     } else if (chunk instanceof Uint8Array) {
@@ -106,15 +86,14 @@ async function readNodeBody(req: NodeLikeRequest) {
   return body;
 }
 
-export async function nodeToRequest(req: unknown): Promise<Request> {
+export async function nodeToRequest(req) {
   if (req instanceof Request) {
     return req;
   }
 
-  const nodeReq = req as NodeLikeRequest;
-  const method = nodeReq.method || 'GET';
+  const method = req.method || 'GET';
   const headers = new Headers();
-  for (const [key, value] of Object.entries(nodeReq.headers || {})) {
+  for (const [key, value] of Object.entries(req.headers || {})) {
     if (!value) {
       continue;
     }
@@ -122,21 +101,21 @@ export async function nodeToRequest(req: unknown): Promise<Request> {
   }
 
   const host = headers.get('host') || 'localhost';
-  const url = `https://${host}${nodeReq.url || '/'}`;
-  const init: RequestInit = { method, headers };
+  const url = `https://${host}${req.url || '/'}`;
+  const init = { method, headers };
 
   if (method !== 'GET' && method !== 'HEAD') {
-    const body = await readNodeBody(nodeReq);
+    const body = await readNodeBody(req);
     if (body != null) {
       init.body = body;
-      Object.assign(init, { duplex: 'half' });
+      init.duplex = 'half';
     }
   }
 
   return new Request(url, init);
 }
 
-export async function writeNodeResponse(res: NodeLikeResponse, response: Response) {
+export async function writeNodeResponse(res, response) {
   const cookies =
     typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [];
   const body = new Uint8Array(await response.arrayBuffer());
@@ -166,9 +145,9 @@ export async function writeNodeResponse(res: NodeLikeResponse, response: Respons
   res.end?.(body);
 }
 
-export function defineHandler(fetchHandler: (request: Request) => Promise<Response>): AppHandler {
+export function defineHandler(fetchHandler) {
   return {
-    async fetch(request: Request) {
+    async fetch(request) {
       try {
         return await fetchHandler(request);
       } catch (error) {

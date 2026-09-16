@@ -9,11 +9,15 @@ import meHandler from '../api/auth/me';
 import productsHandler from '../api/products/index';
 import productItemHandler from '../api/products/[id]';
 import healthHandler from '../api/health';
-import { nodeToRequest, writeNodeResponse, type AppHandler } from '../api/_lib/http';
+import { nodeToRequest, writeNodeResponse } from '../api/_lib/http.js';
 
 const PORT = 3001;
 
-async function dispatch(handler: AppHandler, req: http.IncomingMessage, res: http.ServerResponse) {
+async function dispatch(
+  handler: { fetch: (request: Request) => Promise<Response> },
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
   const request = await nodeToRequest(req);
   const response = await handler.fetch(request);
   await writeNodeResponse(res, response);

@@ -1,14 +1,9 @@
 import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
-import { sql } from './db';
-import { getCookie } from './http';
+import { sql } from './db.js';
+import { getCookie } from './http.js';
 
 export const SESSION_COOKIE = 'izu_session';
 const SESSION_DAYS = 7;
-
-type SessionPayload = {
-  email: string;
-  exp: number;
-};
 
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -18,12 +13,12 @@ function getSessionSecret() {
   return secret;
 }
 
-function sign(value: string) {
+function sign(value) {
   return createHmac('sha256', getSessionSecret()).update(value).digest('base64url');
 }
 
-export function createSessionToken(email: string) {
-  const payload: SessionPayload = {
+export function createSessionToken(email) {
+  const payload = {
     email,
     exp: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
   };
@@ -31,7 +26,7 @@ export function createSessionToken(email: string) {
   return `${encoded}.${sign(encoded)}`;
 }
 
-export function readSession(request: Request): SessionPayload | null {
+export function readSession(request) {
   const token = getCookie(request, SESSION_COOKIE);
   if (!token) {
     return null;
@@ -50,7 +45,7 @@ export function readSession(request: Request): SessionPayload | null {
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SessionPayload;
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
     if (!payload.email || payload.exp < Date.now()) {
       return null;
     }
@@ -65,7 +60,7 @@ function cookieFlags() {
   return `Path=/; HttpOnly; SameSite=Lax${secure}`;
 }
 
-export function sessionCookie(token: string) {
+export function sessionCookie(token) {
   return `${SESSION_COOKIE}=${token}; ${cookieFlags()}; Max-Age=${SESSION_DAYS * 24 * 60 * 60}`;
 }
 
@@ -73,7 +68,7 @@ export function clearSessionCookieValue() {
   return `${SESSION_COOKIE}=; ${cookieFlags()}; Max-Age=0`;
 }
 
-export async function authenticateUser(email: string, password: string) {
+export async function authenticateUser(email, password) {
   const normalized = email.trim().toLowerCase();
   if (!normalized || !password) {
     return null;

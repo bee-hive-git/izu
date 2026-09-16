@@ -1,6 +1,6 @@
-import { readSession } from '../_lib/auth';
-import { mapProduct, sql } from '../_lib/db';
-import { defineHandler, getRequestUrl, json, readJson } from '../_lib/http';
+import { readSession } from '../_lib/auth.js';
+import { mapProduct, sql } from '../_lib/db.js';
+import { defineHandler, getRequestUrl, json, readJson } from '../_lib/http.js';
 
 type ProductInput = {
   name?: string;

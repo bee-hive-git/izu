@@ -1,6 +1,6 @@
-import { readSession } from './_lib/auth';
-import { uploadProductImageBuffer } from './_lib/bunny';
-import { defineHandler, json } from './_lib/http';
+import { readSession } from './_lib/auth.js';
+import { uploadProductImageBuffer } from './_lib/bunny.js';
+import { defineHandler, json } from './_lib/http.js';
 
 const handler = defineHandler(async (request) => {
   if (request.method !== 'POST') {

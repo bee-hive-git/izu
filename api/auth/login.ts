@@ -1,5 +1,5 @@
-import { authenticateUser, createSessionToken, sessionCookie } from '../_lib/auth';
-import { defineHandler, json, readJson } from '../_lib/http';
+import { authenticateUser, createSessionToken, sessionCookie } from '../_lib/auth.js';
+import { defineHandler, json, readJson } from '../_lib/http.js';
 
 const handler = defineHandler(async (request) => {
   if (request.method !== 'POST') {

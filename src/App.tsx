@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { ProductList } from './pages/ProductList';
@@ -24,7 +24,7 @@ function App() {
         <Route path="sobre" element={<About />} />
       </Route>
       
-      {/* Admin Routes */}
+      <Route path="/login" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       
       <Route path="/admin" element={<AdminLayout />}>

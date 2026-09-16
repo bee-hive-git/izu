@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 const PRODUCT_FOLDER = 'produtos';
 
-function requiredEnv(name: string) {
+function requiredEnv(name) {
   const value = process.env[name]?.trim();
   if (!value) {
     throw new Error(`Missing ${name} environment variable`);
@@ -36,7 +36,7 @@ function cdnBaseUrl() {
   return requiredEnv('BUNNY_CDN_URL').replace(/\/$/, '');
 }
 
-function encodeStoragePath(path: string) {
+function encodeStoragePath(path) {
   return path
     .split('/')
     .filter(Boolean)
@@ -44,15 +44,15 @@ function encodeStoragePath(path: string) {
     .join('/');
 }
 
-function storageUrl(path: string) {
+function storageUrl(path) {
   return `https://${storageHost()}/${encodeURIComponent(storageZone())}/${encodeStoragePath(path)}`;
 }
 
-export function publicUrl(path: string) {
+export function publicUrl(path) {
   return `${cdnBaseUrl()}/${encodeStoragePath(path)}`;
 }
 
-export function sanitizeStoragePath(path: string) {
+export function sanitizeStoragePath(path) {
   const normalized = path.replace(/^\/+/, '').replace(/\\/g, '/');
   if (!normalized.startsWith(`${PRODUCT_FOLDER}/`) || normalized.includes('..')) {
     return null;
@@ -60,13 +60,13 @@ export function sanitizeStoragePath(path: string) {
   return normalized;
 }
 
-function fileExtension(fileName: string, mimeType?: string) {
+function fileExtension(fileName, mimeType) {
   const fromName = fileName.split('.').pop()?.toLowerCase();
   if (fromName && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(fromName)) {
     return fromName === 'jpeg' ? 'jpg' : fromName;
   }
 
-  const fromMime: Record<string, string> = {
+  const fromMime = {
     'image/jpeg': 'jpg',
     'image/png': 'png',
     'image/webp': 'webp',
@@ -77,11 +77,7 @@ function fileExtension(fileName: string, mimeType?: string) {
   return (mimeType && fromMime[mimeType]) || 'jpg';
 }
 
-export async function uploadProductImageBuffer(
-  body: Buffer | Uint8Array | ArrayBuffer | Blob,
-  originalName: string,
-  mimeType?: string,
-) {
+export async function uploadProductImageBuffer(body, originalName, mimeType) {
   const extension = fileExtension(originalName, mimeType);
   const path = `${PRODUCT_FOLDER}/${randomUUID()}.${extension}`;
 
@@ -105,7 +101,7 @@ export async function uploadProductImageBuffer(
   };
 }
 
-export async function deleteProductImage(publicId: string) {
+export async function deleteProductImage(publicId) {
   const path = sanitizeStoragePath(publicId);
   if (!path) {
     throw new Error('Caminho de imagem inválido');
