@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -94,6 +94,10 @@ const getDraftStorageKey = (productId?: string) => `admin-product-form-draft:${p
 export function AdminProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnParam = searchParams.get('voltar');
+  const returnTo = returnParam?.startsWith('/admin') ? returnParam : '/admin/produtos';
+  const ignoreDraft = Boolean(returnParam);
   const isEditing = !!id;
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -159,7 +163,7 @@ export function AdminProductForm() {
       let draft: ProductDraft | null = null;
 
       try {
-        const storedDraft = window.localStorage.getItem(draftStorageKey);
+        const storedDraft = ignoreDraft ? null : window.localStorage.getItem(draftStorageKey);
         draft = storedDraft ? JSON.parse(storedDraft) : null;
       } catch {
         draft = null;
@@ -187,7 +191,7 @@ export function AdminProductForm() {
     return () => {
       isCancelled = true;
     };
-  }, [draftStorageKey, form, id, isEditing]);
+  }, [draftStorageKey, form, id, isEditing, ignoreDraft]);
 
   useEffect(() => {
     if (!draftReady) {
@@ -267,7 +271,7 @@ export function AdminProductForm() {
       }
 
       window.localStorage.removeItem(draftStorageKey);
-      navigate('/admin/produtos');
+      navigate(returnTo);
     } catch (error) {
       console.error(error);
       setFormError(error instanceof Error ? error.message : 'Erro ao salvar produto');

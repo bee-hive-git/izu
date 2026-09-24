@@ -1,15 +1,33 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, LayoutDashboard, Package, LogOut, Home as HomeIcon } from 'lucide-react';
+import { Loader2, LayoutDashboard, Package, LogOut, Home as HomeIcon, Newspaper, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { authApi } from '@/lib/api';
+import { ISSUES_COUNT_EVENT, adminIssuesApi, authApi } from '@/lib/api';
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import logo from '@/assets/logo-principal.png';
 import { COMPANY_INFO } from '@/lib/constants';
 
 export function AdminLayout() {
   const { session, loading, setSession } = useAuth();
   const location = useLocation();
+  const [issuesCount, setIssuesCount] = useState(0);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    adminIssuesApi
+      .list()
+      .then(({ issues }) => !cancelled && setIssuesCount(issues.length))
+      .catch(() => undefined);
+
+    const onCount = (event: Event) => setIssuesCount((event as CustomEvent<number>).detail);
+    window.addEventListener(ISSUES_COUNT_EVENT, onCount);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(ISSUES_COUNT_EVENT, onCount);
+    };
+  }, [session]);
 
   if (loading) {
     return (
@@ -32,6 +50,8 @@ export function AdminLayout() {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Produtos', icon: Package, path: '/admin/produtos' },
+    { label: 'Blog', icon: Newspaper, path: '/admin/blog' },
+    ...(issuesCount > 0 ? [{ label: 'Ajustes', icon: Wrench, path: '/admin/ajustes', badge: issuesCount }] : []),
   ];
 
   return (
@@ -58,6 +78,11 @@ export function AdminLayout() {
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
+                {'badge' in item && item.badge ? (
+                  <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                    {item.badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

@@ -74,3 +74,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .blog-rich {
+    @apply text-base leading-relaxed text-slate-700 md:text-lg;
+  }
+  .blog-rich > * + * {
+    @apply mt-4;
+  }
+  .blog-rich h2 {
+    @apply mt-8 text-2xl font-bold leading-tight text-slate-900 md:text-3xl;
+  }
+  .blog-rich h3 {
+    @apply mt-6 text-xl font-semibold leading-snug text-slate-900 md:text-2xl;
+  }
+  .blog-rich ul {
+    @apply list-disc space-y-1 pl-6;
+  }
+  .blog-rich ol {
+    @apply list-decimal space-y-1 pl-6;
+  }
+  .blog-rich blockquote {
+    @apply border-l-4 border-primary bg-slate-50 py-2 pl-4 pr-2 italic text-slate-600;
+  }
+  .blog-rich a {
+    @apply font-medium text-primary underline underline-offset-2 hover:opacity-80;
+  }
+  .blog-rich strong {
+    @apply font-semibold text-slate-900;
+  }
+  .blog-rich p:empty::before {
+    content: '\00a0';
+  }
+  .blog-editor .ProseMirror {
+    @apply min-h-[140px] px-4 py-3 outline-none;
+  }
+  .blog-editor .ProseMirror p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-slate-400;
+    content: attr(data-placeholder);
+  }
+}

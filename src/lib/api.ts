@@ -91,9 +91,122 @@ export const authApi = {
   },
 };
 
-export const productsApi = {
-  list: (params?: { category?: string; subcategory?: string; search?: string; all?: boolean }) => {
+export type BlogBlock =
+  | { id: string; type: 'text'; html: string }
+  | { id: string; type: 'image'; url: string; alt: string }
+  | { id: string; type: 'products'; productIds: string[] };
+
+export type BlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  category: string;
+  cover_image: string;
+  published_at: string;
+  published: boolean;
+  featured: boolean;
+  content?: BlogBlock[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlogPostPayload = {
+  title: string;
+  subtitle: string | null;
+  category: string;
+  cover_image: string;
+  published_at: string | null;
+  published: boolean;
+  featured: boolean;
+  content: BlogBlock[];
+};
+
+export type BlogCategory = {
+  id: string;
+  name: string;
+  post_count: number;
+};
+
+export const blogApi = {
+  listPosts: (params?: { all?: boolean; category?: string; exclude?: string; limit?: number }) => {
     const searchParams = new URLSearchParams();
+    if (params?.all) searchParams.set('all', '1');
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.exclude) searchParams.set('exclude', params.exclude);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const query = searchParams.toString();
+    return request<{ posts: BlogPost[] }>(`/api/blog/posts${query ? `?${query}` : ''}`);
+  },
+  getPost: (idOrSlug: string) =>
+    request<{ post: BlogPost }>(`/api/blog/posts/${encodeURIComponent(idOrSlug)}`),
+  createPost: (payload: BlogPostPayload) =>
+    request<{ post: BlogPost }>('/api/blog/posts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updatePost: (id: string, payload: BlogPostPayload) =>
+    request<{ post: BlogPost }>(`/api/blog/posts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  removePost: (id: string) =>
+    request<{ success: boolean }>(`/api/blog/posts/${id}`, { method: 'DELETE' }),
+  listCategories: () => request<{ categories: BlogCategory[] }>('/api/blog/categories'),
+  createCategory: (name: string) =>
+    request<{ category: BlogCategory }>('/api/blog/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  renameCategory: (id: string, name: string) =>
+    request<{ category: BlogCategory }>(`/api/blog/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    }),
+  removeCategory: (id: string) =>
+    request<{ success: boolean }>(`/api/blog/categories/${id}`, { method: 'DELETE' }),
+  uploadImage: (file: Blob, fileName: string, kind: 'cover' | 'content') => {
+    const form = new FormData();
+    form.append('file', file, fileName);
+    form.append('kind', kind);
+    return request<{ url: string; width: number; height: number }>('/api/blog/upload', {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(90000),
+    });
+  },
+};
+
+export type ProductIssue = {
+  id: string;
+  name: string;
+  category: string;
+  active: boolean;
+  total_images: number;
+  missing_images: string[];
+  preview: string | null;
+  problems: Array<'no_images' | 'missing_images' | 'missing_cover' | 'all_missing'>;
+};
+
+export const ISSUES_COUNT_EVENT = 'admin-issues-count';
+
+export const adminIssuesApi = {
+  list: () =>
+    request<{ issues: ProductIssue[]; checked: number }>('/api/admin/issues', {
+      signal: AbortSignal.timeout(60000),
+    }),
+  removeMissing: (productId: string) =>
+    request<{ removed: number; remaining: number }>('/api/admin/issues', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'remove_missing', productId }),
+      signal: AbortSignal.timeout(30000),
+    }),
+};
+
+export const productsApi = {
+  list: (params?: { category?: string; subcategory?: string; search?: string; all?: boolean; ids?: string[] }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.ids) searchParams.set('ids', params.ids.join(','));
     if (params?.category) searchParams.set('category', params.category);
     if (params?.subcategory) searchParams.set('subcategory', params.subcategory);
     if (params?.search) searchParams.set('search', params.search);

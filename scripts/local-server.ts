@@ -9,6 +9,13 @@ import meHandler from '../api/auth/me';
 import productsHandler from '../api/products/index';
 import productItemHandler from '../api/products/[id]';
 import healthHandler from '../api/health';
+import adminIssuesHandler from '../api/admin/issues';
+import blogUploadHandler from '../api/blog/upload';
+import blogOgHandler from '../api/blog/og';
+import blogPostsHandler from '../api/blog/posts/index';
+import blogPostItemHandler from '../api/blog/posts/[id]';
+import blogCategoriesHandler from '../api/blog/categories/index';
+import blogCategoryItemHandler from '../api/blog/categories/[id]';
 import { nodeToRequest, writeNodeResponse } from '../api/_lib/http.js';
 
 const PORT = 3001;
@@ -56,6 +63,20 @@ const server = http.createServer(async (req, res) => {
       await dispatch(productsHandler, req, res);
     } else if (pathname.startsWith('/api/products/')) {
       await dispatch(productItemHandler, req, res);
+    } else if (pathname === '/api/admin/issues') {
+      await dispatch(adminIssuesHandler, req, res);
+    } else if (pathname === '/api/blog/upload') {
+      await dispatch(blogUploadHandler, req, res);
+    } else if (pathname === '/api/blog/og') {
+      await dispatch(blogOgHandler, req, res);
+    } else if (pathname === '/api/blog/posts') {
+      await dispatch(blogPostsHandler, req, res);
+    } else if (pathname.startsWith('/api/blog/posts/')) {
+      await dispatch(blogPostItemHandler, req, res);
+    } else if (pathname === '/api/blog/categories') {
+      await dispatch(blogCategoriesHandler, req, res);
+    } else if (pathname.startsWith('/api/blog/categories/')) {
+      await dispatch(blogCategoryItemHandler, req, res);
     } else {
       console.log(`Route not found: ${pathname}`);
       res.statusCode = 404;

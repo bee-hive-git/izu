@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 const PRODUCT_FOLDER = 'produtos';
+const ALLOWED_FOLDERS = [PRODUCT_FOLDER, 'blog'];
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -54,7 +55,8 @@ export function publicUrl(path) {
 
 export function sanitizeStoragePath(path) {
   const normalized = path.replace(/^\/+/, '').replace(/\\/g, '/');
-  if (!normalized.startsWith(`${PRODUCT_FOLDER}/`) || normalized.includes('..')) {
+  const allowed = ALLOWED_FOLDERS.some((folder) => normalized.startsWith(`${folder}/`));
+  if (!allowed || normalized.includes('..')) {
     return null;
   }
   return normalized;
@@ -75,6 +77,47 @@ function fileExtension(fileName, mimeType) {
   };
 
   return (mimeType && fromMime[mimeType]) || 'jpg';
+}
+
+export async function uploadBuffer(path, body, mimeType) {
+  const response = await fetch(storageUrl(path), {
+    method: 'PUT',
+    headers: {
+      AccessKey: accessKey(),
+      'Content-Type': mimeType || 'application/octet-stream',
+    },
+    body,
+  });
+
+  if (response.status !== 201 && !response.ok) {
+    const details = await response.text();
+    throw new Error(`Bunny upload failed (${storageZone()} @ ${storageHost()}): ${response.status} ${details}`.trim());
+  }
+
+  return publicUrl(path);
+}
+
+export async function listStorageFolder(folder) {
+  const response = await fetch(`${storageUrl(folder)}/`, {
+    headers: { AccessKey: accessKey(), accept: 'application/json' },
+  });
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Bunny list failed: ${response.status} ${details}`.trim());
+  }
+  const entries = await response.json();
+  return entries.filter((entry) => !entry.IsDirectory).map((entry) => `${folder}/${entry.ObjectName}`);
+}
+
+export function storagePathFromUrl(url) {
+  if (typeof url !== 'string') {
+    return null;
+  }
+  const base = `${cdnBaseUrl()}/`;
+  if (!url.startsWith(base)) {
+    return null;
+  }
+  return sanitizeStoragePath(decodeURIComponent(url.slice(base.length)));
 }
 
 export async function uploadProductImageBuffer(body, originalName, mimeType) {

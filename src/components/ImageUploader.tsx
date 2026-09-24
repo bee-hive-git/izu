@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, ImageOff } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,9 +14,11 @@ interface ImageUploaderProps {
 
 export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onSetCover }: ImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { uploadImage, deleteImage, uploading, error } = useImageUpload();
+  const { uploadImage, uploading, error } = useImageUpload();
   const [dragActive, setDragActive] = useState(false);
   const [localUploading, setLocalUploading] = useState(false);
+  const [brokenUrls, setBrokenUrls] = useState<Set<string>>(new Set());
+  const brokenCount = value.filter((image) => brokenUrls.has(image.url)).length;
 
   const isUploading = uploading || localUploading;
 
@@ -72,21 +74,9 @@ export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onS
     setLocalUploading(false);
   };
 
-  const handleRemove = async (index: number) => {
-    const imageToRemove = value[index];
-    
-    // Remove from UI immediately
-    const newImages = value.filter((_, i) => i !== index);
-    onChange(newImages);
-
-    if (imageToRemove.public_id) {
-      try {
-        await deleteImage(imageToRemove.public_id);
-      } catch (error) {
-        console.error("Erro ao deletar imagem do Bunny:", error);
-        // We don't add it back to UI because it's already gone for the user
-      }
-    }
+  // The file stays in storage until the product is saved; the server removes it only if no product uses it.
+  const handleRemove = (index: number) => {
+    onChange(value.filter((_, i) => i !== index));
   };
 
   return (
@@ -138,17 +128,39 @@ export function ImageUploader({ value, onChange, maxImages = 20, coverImage, onS
           <p className="text-sm font-medium text-slate-700">
             Imagens selecionadas ({value.length} / {maxImages})
           </p>
+          {brokenCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <span>{brokenCount} foto(s) não existem mais no armazenamento.</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 border-red-300 text-red-700 hover:bg-red-100"
+                onClick={() => onChange(value.filter((image) => !brokenUrls.has(image.url)))}
+              >
+                Remover fotos perdidas
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {value.map((image, index) => (
               <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
                 <img 
                   src={image.url} 
                   alt={`Preview ${index}`} 
+                  onError={() => setBrokenUrls((current) => new Set(current).add(image.url))}
                   className={cn(
                     "w-full h-full object-cover",
                     coverImage === image.url && "ring-2 ring-primary"
                   )}
                 />
+
+                {brokenUrls.has(image.url) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-red-50 text-center text-red-600 ring-2 ring-inset ring-red-500">
+                    <ImageOff className="h-6 w-6" />
+                    <span className="px-2 text-xs font-semibold">Foto perdida — remova e envie de novo</span>
+                  </div>
+                )}
                 
                 {coverImage === image.url && (
                   <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded shadow-sm z-10">

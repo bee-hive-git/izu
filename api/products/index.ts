@@ -18,6 +18,8 @@ type ProductInput = {
   active?: boolean;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function validateProduct(body: ProductInput) {
   if (!body.name?.trim() || !body.description?.trim() || !body.category?.trim() || !body.subcategory?.trim()) {
     return 'Preencha nome, descrição, categoria e subcategoria';
@@ -36,11 +38,22 @@ const handler = defineHandler(async (request) => {
       const subcategory = query.get('subcategory') || '';
       const search = query.get('search') || '';
       const isAdminList = query.get('all') === '1' && Boolean(readSession(request));
+      const idsParam = query.get('ids');
+      const ids = (idsParam || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => UUID_PATTERN.test(id))
+        .slice(0, 50);
+
+      if (idsParam !== null && ids.length === 0) {
+        return json({ products: [] });
+      }
 
       const rows = await sql`
         SELECT *
         FROM products
         WHERE (${isAdminList} OR active = true)
+          AND (${ids.length === 0} OR id = ANY(${ids}::uuid[]))
           AND (${category} = '' OR category = ${category})
           AND (${subcategory} = '' OR subcategory = ${subcategory})
           AND (${search} = '' OR name ILIKE ${'%' + search + '%'})

@@ -1,6 +1,21 @@
 import { readSession } from '../_lib/auth.js';
 import { mapProduct, sql } from '../_lib/db.js';
 import { defineHandler, getPathParam, json, readJson } from '../_lib/http.js';
+import { deleteProductImage, storagePathFromUrl } from '../_lib/bunny.js';
+
+async function deleteUnusedImages(urls: string[]) {
+  for (const url of urls) {
+    const path = storagePathFromUrl(url);
+    if (!path?.startsWith('produtos/')) continue;
+    const stillUsed = await sql`SELECT 1 FROM products WHERE ${url} = ANY(images) LIMIT 1`;
+    if (stillUsed.length) continue;
+    try {
+      await deleteProductImage(path);
+    } catch (error) {
+      console.error('Product image cleanup error:', error);
+    }
+  }
+}
 
 type ProductInput = {
   name?: string;
@@ -74,6 +89,9 @@ const handler = defineHandler(async (request) => {
         return json({ error: 'Adicione pelo menos uma imagem' }, 400);
       }
 
+      const previous = await sql`SELECT images FROM products WHERE id = ${id}`;
+      const previousImages = (previous[0]?.images as string[] | undefined) ?? [];
+
       const rows = await sql`
         UPDATE products
         SET
@@ -98,14 +116,18 @@ const handler = defineHandler(async (request) => {
         return json({ error: 'Produto não encontrado' }, 404);
       }
 
+      const kept = new Set(body.images);
+      await deleteUnusedImages(previousImages.filter((url) => !kept.has(url)));
+
       return json({ product: mapProduct(rows[0] as Record<string, unknown>) });
     }
 
     if (request.method === 'DELETE') {
-      const rows = await sql`DELETE FROM products WHERE id = ${id} RETURNING id`;
+      const rows = await sql`DELETE FROM products WHERE id = ${id} RETURNING images`;
       if (rows.length === 0) {
         return json({ error: 'Produto não encontrado' }, 404);
       }
+      await deleteUnusedImages((rows[0].images as string[] | undefined) ?? []);
       return json({ success: true });
     }
 

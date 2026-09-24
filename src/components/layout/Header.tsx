@@ -90,6 +90,12 @@ export function Header() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
+                <Link to="/blog" className={navigationMenuTriggerStyle()}>
+                  Blog
+                </Link>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
                 <Link to="/#faq" className={navigationMenuTriggerStyle()}>
                   FAQ
                 </Link>
@@ -169,6 +175,14 @@ export function Header() {
                   onClick={() => setIsOpen(false)}
                 >
                   A Empresa
+                </Link>
+
+                <Link
+                  to="/blog"
+                  className="px-4 py-3 text-lg font-medium hover:bg-slate-50 rounded-md transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Blog
                 </Link>
                 
                 <Link 
