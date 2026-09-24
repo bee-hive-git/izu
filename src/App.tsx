@@ -9,6 +9,7 @@ import { About } from './pages/About';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminProducts } from './pages/admin/AdminProducts';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
 import { Blog } from './pages/Blog';
 import { BlogPost } from './pages/BlogPost';
@@ -54,7 +55,7 @@ function App() {
       
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
-        <Route path="produtos" element={<AdminDashboard />} />
+        <Route path="produtos" element={<AdminProducts />} />
         <Route path="produtos/novo" element={<AdminProductForm />} />
         <Route path="produtos/:id/editar" element={<AdminProductForm />} />
         <Route path="ajustes" element={<AdminIssues />} />
